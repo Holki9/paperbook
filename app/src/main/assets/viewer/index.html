@@ -150,17 +150,23 @@
       pointer-events: auto;
     }
 
-    /* Top HUD Bar */
+    /* Floating Island Top HUD Bar */
     #hud-top {
-      top: 0;
-      left: 0;
-      right: 0;
-      padding: 16px 20px;
+      top: calc(env(safe-area-inset-top, 16px) + 12px);
+      left: 16px;
+      right: 16px;
+      max-width: 460px;
+      margin: 0 auto;
+      padding: 10px 16px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-radius: 0 0 20px 20px;
-      transform: translateY(-20px);
+      border-radius: 24px;
+      background: var(--hud-bg);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+      transform: translateY(-80px);
     }
 
     #hud-top.visible {
@@ -170,11 +176,12 @@
     .book-title-tag {
       font-size: 14px;
       font-weight: 600;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.3px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 60vw;
+      max-width: 50vw;
+      text-align: center;
     }
 
     .hud-btn {
@@ -190,6 +197,7 @@
       align-items: center;
       gap: 6px;
       transition: all 0.15s ease;
+      white-space: nowrap;
     }
 
     .hud-btn:active {
@@ -197,17 +205,23 @@
       opacity: 0.8;
     }
 
-    /* Bottom HUD Bar */
+    /* Floating Island Bottom HUD Bar */
     #hud-bottom {
-      bottom: 0;
-      left: 0;
-      right: 0;
-      padding: 18px 20px;
+      bottom: calc(env(safe-area-inset-bottom, 16px) + 16px);
+      left: 16px;
+      right: 16px;
+      max-width: 460px;
+      margin: 0 auto;
+      padding: 14px 18px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
-      border-radius: 24px 24px 0 0;
-      transform: translateY(20px);
+      gap: 12px;
+      border-radius: 28px;
+      background: var(--hud-bg);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+      transform: translateY(120px);
     }
 
     #hud-bottom.visible {
@@ -258,12 +272,25 @@
       width: 100%;
     }
 
-    .page-counter {
-      font-size: 13px;
+    .page-counter, .page-counter-btn {
+      font-size: 12px;
       font-weight: 600;
       font-variant-numeric: tabular-nums;
       min-width: 65px;
       text-align: center;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--hud-border);
+      color: var(--hud-text);
+      padding: 5px 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .page-counter-btn:active {
+      transform: scale(0.96);
+      background: rgba(255, 255, 255, 0.18);
     }
 
     .slider {
@@ -562,28 +589,220 @@
       border-radius: 2px;
     }
 
-    .book-delete-btn {
+    .book-card-actions {
       position: absolute;
       top: 8px;
       right: 8px;
-      background: rgba(0, 0, 0, 0.65);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      color: #f87171;
+      display: flex;
+      gap: 6px;
+      z-index: 5;
+    }
+
+    .book-action-btn {
+      background: rgba(0, 0, 0, 0.70);
+      border: 1px solid rgba(255, 255, 255, 0.20);
       width: 28px;
       height: 28px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 13px;
       cursor: pointer;
-      z-index: 5;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: transform 0.15s;
+    }
+
+    .book-action-btn:active {
+      transform: scale(0.9);
+    }
+
+    .book-action-btn.edit-btn {
+      color: #e4e4e7;
+    }
+
+    .book-action-btn.delete-btn {
+      color: #f87171;
+    }
+
+    /* Shelf Search Bar */
+    .shelf-search-container {
+      padding: 12px 20px 8px 20px;
+      position: sticky;
+      top: 68px;
+      background: var(--bg-desk);
+      z-index: 9;
+    }
+
+    .shelf-search-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--hud-border);
+      border-radius: 18px;
+      padding: 10px 16px;
+      color: var(--hud-text);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .shelf-search-bar input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--hud-text);
+      font-size: 14px;
+      flex: 1;
+      width: 100%;
+    }
+
+    .shelf-search-bar input::placeholder {
+      color: #71717a;
+    }
+
+    .shelf-search-clear {
+      background: transparent;
+      border: none;
+      color: #a1a1aa;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+    }
+
+    /* Floating Glass Modals */
+    .floating-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 300;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-backdrop {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .floating-modal-card {
+      position: relative;
+      z-index: 10;
+      background: rgba(24, 24, 28, 0.94);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 28px;
+      padding: 24px;
+      width: calc(100vw - 48px);
+      max-width: 380px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes modalPop {
+      0% { transform: scale(0.92); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--hud-text);
+    }
+
+    .modal-input {
+      width: 100%;
+      box-sizing: border-box;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--hud-border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      color: var(--hud-text);
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .modal-input:focus {
+      border-color: #38bdf8;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .modal-btn {
+      padding: 10px 18px;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+    }
+
+    .modal-btn.secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--hud-text);
+      border: 1px solid var(--hud-border);
+    }
+
+    .modal-btn.primary {
+      background: #38bdf8;
+      color: #09090b;
+    }
+
+    .modal-btn:active {
+      transform: scale(0.96);
+    }
+
+    .jump-chips-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .jump-chip {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--hud-border);
+      color: #d4d4d8;
+      border-radius: 10px;
+      padding: 7px 4px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .jump-chip:active {
+      background: rgba(255, 255, 255, 0.16);
     }
 
     #zoom-reset-btn {
       position: absolute;
-      bottom: 24px;
-      right: 24px;
+      bottom: 105px;
+      right: 20px;
       z-index: 60;
       background: var(--hud-bg);
       border: 1px solid var(--hud-border);
@@ -626,35 +845,49 @@
         </button>
       </div>
     </div>
+    
+    <!-- Shelf Search Bar -->
+    <div class="shelf-search-container">
+      <div class="shelf-search-bar">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="text" id="shelf-search-input" placeholder="Поиск книг по названию..." oninput="onSearchLibrary(this.value)">
+        <button id="shelf-search-clear" class="shelf-search-clear" onclick="clearLibrarySearch()" style="display: none;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+    </div>
+
     <div id="bookshelf-content">
       <div id="bookshelf-grid"></div>
       <div id="bookshelf-empty" style="text-align: center; margin-top: 80px; color: #a1a1aa; display: none;">
         <div style="margin-bottom: 12px; display: flex; justify-content: center;"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg></div>
-        <div style="font-size: 18px; font-weight: 600; color: var(--hud-text);">Библиотека пуста</div>
-        <div style="font-size: 13px; margin-top: 8px; line-height: 1.5;">Нажмите «Добавить PDF» выше,<br>чтобы открыть любимые книги и комиксы.</div>
+        <div style="font-size: 18px; font-weight: 600; color: var(--hud-text);" id="bookshelf-empty-title">Библиотека пуста</div>
+        <div style="font-size: 13px; margin-top: 8px; line-height: 1.5;" id="bookshelf-empty-text">Нажмите «Добавить PDF» выше,<br>чтобы открыть любимые книги и комиксы.</div>
       </div>
     </div>
   </div>
 
-  <!-- Top Floating HUD -->
+  <!-- Top Floating HUD Island -->
   <div id="hud-top" class="hud-panel">
     <button class="hud-btn" onclick="openBookshelf()" style="font-weight: 600;">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
       <span>Полка</span>
     </button>
-    <div class="book-title-tag" id="hud-book-title" style="flex: 1; text-align: center; margin: 0 8px;">PaperBook • Демо</div>
+    <div class="book-title-tag" id="hud-book-title">PaperBook • Демо</div>
     <div style="display: flex; gap: 8px;">
-      <button class="hud-btn" onclick="triggerPickPdf()">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        <span>Добавить</span>
+      <button class="hud-btn" onclick="openPageJumpModal()" title="Переход на страницу">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <span>Поиск</span>
       </button>
     </div>
   </div>
 
-  <!-- Bottom Floating HUD -->
+  <!-- Bottom Floating HUD Island -->
   <div id="hud-bottom" class="hud-panel">
     <div class="page-slider-container">
-      <span class="page-counter" id="page-counter">1 / 1</span>
+      <button class="page-counter-btn" id="page-counter" onclick="openPageJumpModal()" title="Нажмите для перехода к странице">
+        1 / 1
+      </button>
       <input type="range" class="slider" id="page-slider" min="0" max="0" value="0" oninput="onSliderChange(this.value)">
     </div>
 
@@ -668,15 +901,51 @@
       </div>
 
       <!-- Quick Toggles -->
-      <div style="display: flex; gap: 8px;">
+      <div>
         <button class="hud-btn" id="sound-btn" onclick="toggleSound()">
           <span id="sound-icon" style="display: inline-flex; align-items: center;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg></span>
           <span>Звук</span>
         </button>
-        <button class="hud-btn" id="spread-btn" onclick="toggleSpread()">
-          <span id="spread-icon" style="display: inline-flex; align-items: center;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg></span>
-          <span id="spread-text">Авто</span>
-        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Page Jump Modal -->
+  <div id="page-jump-modal" class="floating-modal" style="display: none;">
+    <div class="modal-backdrop" onclick="closePageJumpModal()"></div>
+    <div class="floating-modal-card">
+      <div class="modal-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <span>Переход к странице</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <input type="number" id="jump-page-input" class="modal-input" placeholder="№ страницы" min="1" max="1" style="font-size: 18px; font-weight: 600; text-align: center;" onkeydown="if(event.key==='Enter') submitPageJump()">
+        <span id="jump-total-text" style="font-size: 14px; color: #a1a1aa; white-space: nowrap;">из 1</span>
+      </div>
+      <div class="jump-chips-row">
+        <button class="jump-chip" onclick="quickJumpTo(1)">В начало (1)</button>
+        <button class="jump-chip" onclick="quickJumpTo(Math.max(1, Math.round(totalPages/2)))">Середина</button>
+        <button class="jump-chip" onclick="quickJumpTo(totalPages)">В конец</button>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn secondary" onclick="closePageJumpModal()">Отмена</button>
+        <button class="modal-btn primary" onclick="submitPageJump()">Перейти</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Rename Modal -->
+  <div id="rename-modal" class="floating-modal" style="display: none;">
+    <div class="modal-backdrop" onclick="closeRenameModal()"></div>
+    <div class="floating-modal-card">
+      <div class="modal-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+        <span>Переименовать книгу</span>
+      </div>
+      <input type="text" id="rename-input" class="modal-input" placeholder="Введите название..." maxlength="100" onkeydown="if(event.key==='Enter') submitRenameBook()">
+      <div class="modal-actions">
+        <button class="modal-btn secondary" onclick="closeRenameModal()">Отмена</button>
+        <button class="modal-btn primary" onclick="submitRenameBook()">Сохранить</button>
       </div>
     </div>
   </div>
@@ -708,46 +977,84 @@
     let pdfDoc = null;
     let flipAudio = document.getElementById('page-flip-sound');
 
-    // Low-latency Web Audio Context for crisp flip sound
+    // High-fidelity Organic Paper Sound Synthesizer (0ms latency, zero dependencies)
     let audioCtx = null;
-    let audioBuffer = null;
 
-    function initWebAudio() {
-      try {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (AudioContext) {
-          audioCtx = new AudioContext();
-          fetch('audio/page-flip.mp3')
-            .then(res => res.arrayBuffer())
-            .then(buf => audioCtx.decodeAudioData(buf))
-            .then(decoded => {
-              audioBuffer = decoded;
-            })
-            .catch(() => {});
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtx = new AudioContextClass();
         }
-      } catch (e) {}
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(() => {});
+      }
+      return audioCtx;
     }
+
+    // Global audio unlock on first user gesture
+    ['touchstart', 'touchend', 'mousedown', 'pointerdown'].forEach(evtName => {
+      window.addEventListener(evtName, () => {
+        getAudioContext();
+      }, { passive: true });
+    });
 
     function playFlipSound() {
       if (!soundEnabled) return;
-      if (audioCtx && audioBuffer) {
-        try {
-          if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-          }
-          const source = audioCtx.createBufferSource();
-          source.buffer = audioBuffer;
-          // Randomize subtle playback rate for organic sound variation
-          source.playbackRate.value = 0.95 + Math.random() * 0.1;
-          source.connect(audioCtx.destination);
-          source.start(0);
-          return;
-        } catch (e) {}
-      }
-      // Fallback HTML5 Audio
-      if (flipAudio) {
-        flipAudio.currentTime = 0;
-        flipAudio.play().catch(() => {});
+      const ctx = getAudioContext();
+      if (!ctx) return;
+
+      try {
+        const now = ctx.currentTime;
+        const duration = 0.25 + Math.random() * 0.05;
+        const sampleRate = ctx.sampleRate;
+        const frameCount = Math.floor(sampleRate * duration);
+        const buffer = ctx.createBuffer(1, frameCount, sampleRate);
+        const data = buffer.getChannelData(0);
+
+        // Tactile paper grain noise simulation
+        let b0 = 0, b1 = 0, b2 = 0;
+        for (let i = 0; i < frameCount; i++) {
+          const white = Math.random() * 2 - 1;
+          b0 = 0.99886 * b0 + white * 0.0555179;
+          b1 = 0.99332 * b1 + white * 0.0750759;
+          b2 = 0.96900 * b2 + white * 0.1538520;
+          data[i] = (b0 + b1 + b2 + white * 0.22) * 0.45;
+        }
+
+        const noiseSrc = ctx.createBufferSource();
+        noiseSrc.buffer = buffer;
+
+        // Bandpass sweeps to mimic the sliding paper friction
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        const startFreq = 1750 + Math.random() * 250;
+        const endFreq = 950 + Math.random() * 150;
+        filter.frequency.setValueAtTime(startFreq, now);
+        filter.frequency.exponentialRampToValueAtTime(endFreq, now + duration);
+        filter.Q.setValueAtTime(1.9, now);
+
+        // Highpass to eliminate unnatural low hum
+        const hp = ctx.createBiquadFilter();
+        hp.type = 'highpass';
+        hp.frequency.setValueAtTime(450, now);
+
+        // Natural exponential decay envelope
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(0.85, now + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+        noiseSrc.connect(filter);
+        filter.connect(hp);
+        hp.connect(gain);
+        gain.connect(ctx.destination);
+
+        noiseSrc.start(now);
+        noiseSrc.stop(now + duration);
+      } catch (e) {
+        console.warn('Audio synthesis warning:', e);
       }
     }
 
@@ -810,25 +1117,64 @@
       updateSoundIconUI();
     }
 
-    // Single / Double page toggle
-    function toggleSpread() {
-      forceSinglePage = !forceSinglePage;
-      document.getElementById('spread-text').innerText = forceSinglePage ? '1 стр.' : 'Авто';
-      recalculateAndRebuild();
-    }
-
-    // Slider
+    // Fast Page Scrubber & Page Indicator
     function onSliderChange(val) {
       val = parseInt(val, 10);
-      if (pageFlip && val !== currentPageIndex) {
-        pageFlip.flip(val);
+      if (pageFlip && val !== currentPageIndex && val >= 0 && val < totalPages) {
+        pageFlip.turnToPage(val);
+        updatePageIndicator(val);
+        playFlipSound();
       }
     }
 
     function updatePageIndicator(pageIdx) {
       currentPageIndex = pageIdx;
-      document.getElementById('page-slider').value = pageIdx;
-      document.getElementById('page-counter').innerText = (pageIdx + 1) + ' / ' + totalPages;
+      const slider = document.getElementById('page-slider');
+      if (slider) slider.value = pageIdx;
+      const counter = document.getElementById('page-counter');
+      if (counter) counter.innerText = (pageIdx + 1) + ' / ' + totalPages;
+    }
+
+    // Floating Page Jump Modal
+    function openPageJumpModal() {
+      const modal = document.getElementById('page-jump-modal');
+      const input = document.getElementById('jump-page-input');
+      const totalText = document.getElementById('jump-total-text');
+      if (!modal || !input) return;
+      input.value = currentPageIndex + 1;
+      input.max = totalPages;
+      if (totalText) totalText.innerText = 'из ' + totalPages;
+      modal.style.display = 'flex';
+      setTimeout(() => input.focus(), 60);
+    }
+
+    function closePageJumpModal() {
+      const modal = document.getElementById('page-jump-modal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function submitPageJump() {
+      const input = document.getElementById('jump-page-input');
+      if (!input) return;
+      const target = parseInt(input.value, 10);
+      if (!isNaN(target) && target >= 1 && target <= totalPages) {
+        jumpToPage(target - 1);
+        closePageJumpModal();
+      }
+    }
+
+    function quickJumpTo(pageOneBased) {
+      const p = Math.max(1, Math.min(pageOneBased, totalPages));
+      jumpToPage(p - 1);
+      closePageJumpModal();
+    }
+
+    function jumpToPage(pageIdx) {
+      if (pageFlip && pageIdx >= 0 && pageIdx < totalPages) {
+        pageFlip.turnToPage(pageIdx);
+        updatePageIndicator(pageIdx);
+        playFlipSound();
+      }
     }
 
     let currentPdfRatio = 0.68;
@@ -951,6 +1297,7 @@
         resetZoom();
         updatePageIndicator(e.data);
         saveBookProgress(currentBookId, e.data);
+        playFlipSound();
       });
 
       pageFlip.on('changeState', (e) => {
@@ -1273,42 +1620,123 @@
       shelf.style.display = 'none';
     }
 
+    let shelfSearchQuery = '';
+    let bookToRenameId = null;
+
+    function onSearchLibrary(query) {
+      shelfSearchQuery = (query || '').trim().toLowerCase();
+      const clearBtn = document.getElementById('shelf-search-clear');
+      if (clearBtn) {
+        clearBtn.style.display = shelfSearchQuery ? 'flex' : 'none';
+      }
+      renderBookshelf();
+    }
+
+    function clearLibrarySearch() {
+      shelfSearchQuery = '';
+      const input = document.getElementById('shelf-search-input');
+      if (input) input.value = '';
+      const clearBtn = document.getElementById('shelf-search-clear');
+      if (clearBtn) clearBtn.style.display = 'none';
+      renderBookshelf();
+    }
+
+    function openRenameModal(bookId) {
+      const list = getStoredLibrary();
+      const book = list.find(b => b.id === bookId);
+      if (!book) return;
+      bookToRenameId = bookId;
+      const modal = document.getElementById('rename-modal');
+      const input = document.getElementById('rename-input');
+      if (!modal || !input) return;
+      input.value = book.title;
+      modal.style.display = 'flex';
+      setTimeout(() => {
+        input.focus();
+        input.select();
+      }, 60);
+    }
+
+    function closeRenameModal() {
+      const modal = document.getElementById('rename-modal');
+      if (modal) modal.style.display = 'none';
+      bookToRenameId = null;
+    }
+
+    function submitRenameBook() {
+      if (!bookToRenameId) return;
+      const input = document.getElementById('rename-input');
+      if (!input) return;
+      const newTitle = input.value.trim();
+      if (newTitle) {
+        const list = getStoredLibrary();
+        const book = list.find(b => b.id === bookToRenameId);
+        if (book) {
+          book.title = newTitle;
+          saveStoredLibrary(list);
+          if (currentBookId === bookToRenameId) {
+            const titleEl = document.getElementById('hud-book-title');
+            if (titleEl) titleEl.innerText = newTitle;
+          }
+          renderBookshelf();
+        }
+      }
+      closeRenameModal();
+    }
+
     function renderBookshelf() {
       const list = getStoredLibrary();
       const grid = document.getElementById('bookshelf-grid');
       const empty = document.getElementById('bookshelf-empty');
+      const emptyTitle = document.getElementById('bookshelf-empty-title');
+      const emptyText = document.getElementById('bookshelf-empty-text');
       grid.innerHTML = '';
 
-      // Demo Book Card
-      const demoCard = document.createElement('div');
-      demoCard.className = 'book-card';
-      demoCard.onclick = () => {
-        currentBookId = 'demo';
-        localStorage.setItem(STORAGE_LAST_BOOK_ID, 'demo');
-        closeBookshelf();
-        recalculateAndRebuild();
-      };
-      demoCard.innerHTML = `
-        <div class="book-cover-container" style="background: linear-gradient(135deg, #18181b, #27272a); display: flex; align-items: center; justify-content: center;">
-          <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
-        </div>
-        <div class="book-card-info">
-          <div class="book-card-title">PaperBook • Демо</div>
-          <div class="book-card-meta">Интерактивный тур</div>
-          <div class="book-card-progress">
-            <div class="book-card-progress-bar" style="width: 100%;"></div>
+      // Demo Book Card (show only if query matches or no query)
+      const showDemo = !shelfSearchQuery || 'paperbook • демо'.includes(shelfSearchQuery) || 'интерактивный тур'.includes(shelfSearchQuery);
+      if (showDemo) {
+        const demoCard = document.createElement('div');
+        demoCard.className = 'book-card';
+        demoCard.onclick = () => {
+          currentBookId = 'demo';
+          localStorage.setItem(STORAGE_LAST_BOOK_ID, 'demo');
+          closeBookshelf();
+          recalculateAndRebuild();
+        };
+        demoCard.innerHTML = `
+          <div class="book-cover-container" style="background: linear-gradient(135deg, #18181b, #27272a); display: flex; align-items: center; justify-content: center;">
+            <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
           </div>
-        </div>
-      `;
-      grid.appendChild(demoCard);
+          <div class="book-card-info">
+            <div class="book-card-title">PaperBook • Демо</div>
+            <div class="book-card-meta">Интерактивный тур</div>
+            <div class="book-card-progress">
+              <div class="book-card-progress-bar" style="width: 100%;"></div>
+            </div>
+          </div>
+        `;
+        grid.appendChild(demoCard);
+      }
 
-      if (list.length === 0) {
+      // Filter user books by search query
+      let filtered = list;
+      if (shelfSearchQuery) {
+        filtered = list.filter(b => (b.title || '').toLowerCase().includes(shelfSearchQuery));
+      }
+
+      if (!showDemo && filtered.length === 0) {
         empty.style.display = 'block';
+        if (emptyTitle) emptyTitle.innerText = 'Книги не найдены';
+        if (emptyText) emptyText.innerText = 'По запросу «' + shelfSearchQuery + '» ничего не нашлось.';
+      } else if (list.length === 0 && !showDemo) {
+        empty.style.display = 'block';
+        if (emptyTitle) emptyTitle.innerText = 'Библиотека пуста';
+        if (emptyText) emptyText.innerText = 'Нажмите «Добавить PDF» выше,\nчтобы открыть любимые книги и комиксы.';
       } else {
         empty.style.display = 'none';
-        list.sort((a, b) => (b.lastReadTime || 0) - (a.lastReadTime || 0));
+        filtered.sort((a, b) => (b.lastReadTime || 0) - (a.lastReadTime || 0));
 
-        list.forEach(book => {
+        filtered.forEach(book => {
           const card = document.createElement('div');
           card.className = 'book-card';
           const curPage = (book.lastPage || 0) + 1;
@@ -1321,7 +1749,14 @@
             : `<div style="display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; background: #27272a;"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg></div>`;
 
           card.innerHTML = `
-            <button class="book-delete-btn" title="Удалить" onclick="event.stopPropagation(); deleteBookFromShelf('${book.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+            <div class="book-card-actions">
+              <button class="book-action-btn edit-btn" title="Переименовать" onclick="event.stopPropagation(); openRenameModal('${book.id}')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+              </button>
+              <button class="book-action-btn delete-btn" title="Удалить" onclick="event.stopPropagation(); deleteBookFromShelf('${book.id}')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
             <div class="book-cover-container">
               ${coverHtml}
             </div>
