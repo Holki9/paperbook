@@ -23,31 +23,40 @@
       --hud-accent-bg: rgba(255, 255, 255, 0.16);
     }
 
-    body[data-theme="paper"] {
+    body[data-theme="original"], body[data-theme="paper"] {
+      --bg-desk: #141416;
+      --hud-bg: rgba(24, 24, 27, 0.90);
+      --hud-border: rgba(255, 255, 255, 0.12);
+      --hud-text: #f4f4f5;
+      --hud-accent: #e4e4e7;
+      --hud-accent-bg: rgba(255, 255, 255, 0.16);
+    }
+
+    body[data-theme="warm"] {
       --bg-desk: #1c1917;
-      --hud-bg: rgba(28, 25, 23, 0.90);
+      --hud-bg: rgba(28, 25, 23, 0.92);
       --hud-border: rgba(245, 245, 244, 0.15);
       --hud-text: #f5f5f4;
-      --hud-accent: #d6d3d1;
-      --hud-accent-bg: rgba(255, 255, 255, 0.14);
+      --hud-accent: #fbbf24;
+      --hud-accent-bg: rgba(251, 191, 36, 0.18);
     }
 
-    body[data-theme="amoled"] {
+    body[data-theme="night"], body[data-theme="amoled"] {
       --bg-desk: #000000;
-      --hud-bg: rgba(10, 10, 10, 0.92);
-      --hud-border: rgba(255, 255, 255, 0.15);
-      --hud-text: #ffffff;
+      --hud-bg: rgba(14, 14, 14, 0.94);
+      --hud-border: rgba(255, 255, 255, 0.12);
+      --hud-text: #e4e4e7;
       --hud-accent: #38bdf8;
-      --hud-accent-bg: rgba(56, 189, 248, 0.2);
+      --hud-accent-bg: rgba(56, 189, 248, 0.18);
     }
 
-    body[data-theme="eink"] {
-      --bg-desk: #ffffff;
-      --hud-bg: #ffffff;
-      --hud-border: #000000;
-      --hud-text: #000000;
-      --hud-accent: #000000;
-      --hud-accent-bg: #e5e5e5;
+    body[data-theme="sharp"] {
+      --bg-desk: #111113;
+      --hud-bg: rgba(20, 20, 24, 0.92);
+      --hud-border: rgba(255, 255, 255, 0.14);
+      --hud-text: #ffffff;
+      --hud-accent: #a78bfa;
+      --hud-accent-bg: rgba(167, 139, 250, 0.2);
     }
 
     html, body {
@@ -90,15 +99,29 @@
       box-shadow: 0 4px 25px rgba(0, 0, 0, 0.35);
     }
 
-    /* Filters for night/amoled reading */
-    body[data-theme="amoled"] .stf__parent canvas,
-    body[data-theme="amoled"] .stf__item img {
-      filter: invert(0.92) hue-rotate(180deg) brightness(0.95) contrast(1.1);
+    /* High quality reading filters - natural tones without negative inversion or grayscale */
+    body[data-theme="original"] .stf__parent canvas,
+    body[data-theme="original"] .stf__item img,
+    body[data-theme="paper"] .stf__parent canvas,
+    body[data-theme="paper"] .stf__item img {
+      filter: none;
     }
 
-    body[data-theme="eink"] .stf__parent canvas,
-    body[data-theme="eink"] .stf__item img {
-      filter: grayscale(1) contrast(1.4);
+    body[data-theme="warm"] .stf__parent canvas,
+    body[data-theme="warm"] .stf__item img {
+      filter: sepia(0.24) brightness(0.96) saturate(0.92);
+    }
+
+    body[data-theme="night"] .stf__parent canvas,
+    body[data-theme="night"] .stf__item img,
+    body[data-theme="amoled"] .stf__parent canvas,
+    body[data-theme="amoled"] .stf__item img {
+      filter: brightness(0.80) contrast(1.03);
+    }
+
+    body[data-theme="sharp"] .stf__parent canvas,
+    body[data-theme="sharp"] .stf__item img {
+      filter: contrast(1.24) brightness(1.0);
     }
 
     .hud-btn svg, .shelf-add-btn svg, .theme-btn svg {
@@ -201,23 +224,25 @@
 
     .theme-selector {
       display: flex;
-      gap: 6px;
-      background: rgba(0, 0, 0, 0.2);
-      padding: 4px;
-      border-radius: 14px;
+      gap: 3px;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 3px;
+      border-radius: 12px;
       border: 1px solid var(--hud-border);
+      flex-shrink: 0;
     }
 
     .theme-btn {
       background: transparent;
       border: none;
       color: var(--hud-text);
-      padding: 6px 12px;
-      border-radius: 10px;
-      font-size: 12px;
+      padding: 5px 8px;
+      border-radius: 8px;
+      font-size: 11px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;
+      white-space: nowrap;
     }
 
     .theme-btn.active {
@@ -248,10 +273,6 @@
       border-radius: 3px;
       background: rgba(255, 255, 255, 0.2);
       outline: none;
-    }
-
-    body[data-theme="eink"] .slider {
-      background: #ccc;
     }
 
     .slider::-webkit-slider-thumb {
@@ -579,7 +600,7 @@
     }
   </style>
 </head>
-<body data-theme="paper">
+<body data-theme="original">
 
   <div id="app-container">
     <div id="book-viewport">
@@ -640,9 +661,10 @@
     <div class="hud-controls-row">
       <!-- Theme Selection -->
       <div class="theme-selector">
-        <button class="theme-btn active" id="btn-theme-paper" onclick="setTheme('paper')">Бумага</button>
-        <button class="theme-btn" id="btn-theme-amoled" onclick="setTheme('amoled')">AMOLED</button>
-        <button class="theme-btn" id="btn-theme-eink" onclick="setTheme('eink')">E-Ink</button>
+        <button class="theme-btn active" id="btn-theme-original" onclick="setTheme('original')">Оригинал</button>
+        <button class="theme-btn" id="btn-theme-warm" onclick="setTheme('warm')">Тёплый</button>
+        <button class="theme-btn" id="btn-theme-night" onclick="setTheme('night')">Ночь</button>
+        <button class="theme-btn" id="btn-theme-sharp" onclick="setTheme('sharp')">Чёткость</button>
       </div>
 
       <!-- Quick Toggles -->
@@ -677,7 +699,7 @@
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'js/pdf.worker.min.js';
 
     let pageFlip = null;
-    let currentTheme = 'paper';
+    let currentTheme = 'original';
     let soundEnabled = true;
     let forceSinglePage = false;
     let totalPages = 0;
@@ -737,6 +759,13 @@
       document.getElementById('hud-bottom').classList.toggle('visible', hudVisible);
     }
 
+    function showHud() {
+      if (currentScale > 1.05) return;
+      hudVisible = true;
+      document.getElementById('hud-top').classList.add('visible');
+      document.getElementById('hud-bottom').classList.add('visible');
+    }
+
     function hideHud() {
       if (hudVisible) {
         hudVisible = false;
@@ -745,25 +774,24 @@
       }
     }
 
-    // Themes
+    // Reading Tone Modes (Original, Warm, Night, Sharp)
     function setTheme(theme) {
+      if (theme === 'paper') theme = 'original';
+      if (theme === 'amoled') theme = 'night';
+      if (theme === 'eink') theme = 'warm';
       currentTheme = theme;
       document.body.setAttribute('data-theme', theme);
       document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
-      document.getElementById('btn-theme-' + theme).classList.add('active');
+      const btn = document.getElementById('btn-theme-' + theme);
+      if (btn) btn.classList.add('active');
 
-      if (theme === 'eink') {
-        // E-Ink optimization: disable sound, instant snap
-        if (pageFlip) {
-          pageFlip.getSettings().flippingTime = 120;
-          pageFlip.getSettings().drawShadow = false;
-        }
-      } else {
-        if (pageFlip) {
-          pageFlip.getSettings().flippingTime = 600;
-          pageFlip.getSettings().drawShadow = true;
-        }
+      if (pageFlip) {
+        pageFlip.getSettings().flippingTime = 600;
+        pageFlip.getSettings().drawShadow = true;
       }
+      try {
+        localStorage.setItem('paperbook_theme', theme);
+      } catch (e) {}
     }
 
     // Sound toggle
@@ -904,8 +932,8 @@
         maxWidth: 2400,
         minHeight: 300,
         maxHeight: 2800,
-        drawShadow: currentTheme !== 'eink',
-        flippingTime: currentTheme === 'eink' ? 120 : 600,
+        drawShadow: true,
+        flippingTime: 600,
         usePortrait: usePortrait,
         startZIndex: 5,
         autoSize: true,
@@ -915,7 +943,8 @@
         swipeDistance: 25,
         clickEventForward: false,
         useMouseEvents: true,
-        showPageCorners: true
+        showPageCorners: true,
+        disableFlipByClick: true
       });
 
       pageFlip.on('flip', (e) => {
@@ -1170,11 +1199,15 @@
             const dy = Math.abs(touch.clientY - singleTouchStart.y);
             const dt = Date.now() - singleTouchStart.time;
             if (dt < 300 && dx < 15 && dy < 15) {
-              const w = window.innerWidth;
-              const h = window.innerHeight;
-              if (touch.clientX > w * 0.25 && touch.clientX < w * 0.75 &&
-                  touch.clientY > h * 0.25 && touch.clientY < h * 0.75) {
-                toggleHud();
+              if (hudVisible) {
+                hideHud();
+              } else {
+                const w = window.innerWidth;
+                const h = window.innerHeight;
+                if (touch.clientX > w * 0.20 && touch.clientX < w * 0.80 &&
+                    touch.clientY > h * 0.20 && touch.clientY < h * 0.80) {
+                  showHud();
+                }
               }
             }
           }
@@ -1428,7 +1461,7 @@
         pageDiv.className = 'page';
         pageDiv.style.width = dim.width + 'px';
         pageDiv.style.height = dim.height + 'px';
-        pageDiv.style.backgroundColor = currentTheme === 'amoled' ? '#121214' : '#FFFFFF';
+        pageDiv.style.backgroundColor = currentTheme === 'night' ? '#18181b' : '#FFFFFF';
         pageDiv.style.display = 'flex';
         pageDiv.style.alignItems = 'center';
         pageDiv.style.justifyContent = 'center';
@@ -1668,6 +1701,8 @@
     window.addEventListener('load', () => {
       initWebAudio();
       initPinchZoom();
+      const savedTheme = localStorage.getItem('paperbook_theme') || 'original';
+      setTheme(savedTheme);
       setTimeout(() => {
         const list = getStoredLibrary();
         const lastBookId = localStorage.getItem(STORAGE_LAST_BOOK_ID);
