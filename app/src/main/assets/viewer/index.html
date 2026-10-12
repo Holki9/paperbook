@@ -80,7 +80,7 @@
     }
 
     #flipbook {
-      display: none;
+      display: block;
       margin: auto;
     }
 
@@ -561,35 +561,37 @@
 
     // Calculate dimensions matching device screen aspect ratio
     function getBookDimensions() {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
+      let w = window.innerWidth || document.documentElement.clientWidth || screen.width || 412;
+      let h = window.innerHeight || document.documentElement.clientHeight || screen.height || 915;
+      if (w <= 0) w = 412;
+      if (h <= 0) h = 915;
       const isLandscape = w > h;
 
       let bookW, bookH;
       if (isLandscape && !forceSinglePage) {
         // Two page spread
-        bookH = Math.floor(h * 0.94);
-        bookW = Math.floor((bookH * 0.70) * 2);
+        bookH = Math.max(Math.floor(h * 0.92), 320);
+        bookW = Math.max(Math.floor((bookH * 0.70) * 2), 400);
         if (bookW > w * 0.96) {
           bookW = Math.floor(w * 0.96);
           bookH = Math.floor((bookW / 2) / 0.70);
         }
         return {
-          width: Math.floor(bookW / 2),
-          height: bookH,
+          width: Math.max(Math.floor(bookW / 2), 200),
+          height: Math.max(bookH, 300),
           usePortrait: false
         };
       } else {
         // Single page portrait
-        bookH = Math.floor(h * 0.96);
-        bookW = Math.floor(bookH * 0.68);
+        bookH = Math.max(Math.floor(h * 0.94), 320);
+        bookW = Math.max(Math.floor(bookH * 0.68), 240);
         if (bookW > w * 0.96) {
           bookW = Math.floor(w * 0.96);
           bookH = Math.floor(bookW / 0.68);
         }
         return {
-          width: bookW,
-          height: bookH,
+          width: Math.max(bookW, 200),
+          height: Math.max(bookH, 300),
           usePortrait: true
         };
       }
@@ -605,9 +607,12 @@
         try { pageFlip.destroy(); } catch (e) {}
       }
 
+      const safeW = Math.max(width || 360, 200);
+      const safeH = Math.max(height || 600, 300);
+
       pageFlip = new St.PageFlip(container, {
-        width: width,
-        height: height,
+        width: safeW,
+        height: safeH,
         size: 'fixed',
         minWidth: 200,
         maxWidth: 2400,
@@ -706,12 +711,17 @@
         container.appendChild(div);
       });
 
-      pf.loadFromHTML(container.querySelectorAll('.page'));
-      totalPages = demoPages.length;
-      document.getElementById('page-slider').max = totalPages - 1;
-      updatePageIndicator(0);
-      document.getElementById('hud-book-title').innerText = 'PaperBook • Демо';
-      hideLoading();
+      try {
+        pf.loadFromHTML(container.querySelectorAll('.page'));
+        totalPages = demoPages.length;
+        document.getElementById('page-slider').max = totalPages - 1;
+        updatePageIndicator(0);
+        document.getElementById('hud-book-title').innerText = 'PaperBook • Демо';
+      } catch (err) {
+        console.error('renderDemoBook error:', err);
+      } finally {
+        hideLoading();
+      }
     }
 
     // PDF Rendering Engine
@@ -829,7 +839,9 @@
     // Initialize on window load
     window.addEventListener('load', () => {
       initWebAudio();
-      renderDemoBook();
+      setTimeout(() => {
+        renderDemoBook();
+      }, 100);
     });
 
     window.addEventListener('resize', () => {

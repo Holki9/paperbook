@@ -114,6 +114,15 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        webView.webChromeClient = object : android.webkit.WebChromeClient() {
+            override fun onConsoleMessage(consoleMessage: android.webkit.ConsoleMessage?): Boolean {
+                consoleMessage?.let {
+                    android.util.Log.d("PaperBookJS", "[${it.messageLevel()}] ${it.message()} (${it.sourceId()}:${it.lineNumber()})")
+                }
+                return true
+            }
+        }
+
         webView.loadUrl("https://appassets.androidplatform.net/assets/viewer/index.html")
     }
 
