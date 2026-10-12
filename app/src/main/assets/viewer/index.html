@@ -1400,7 +1400,7 @@
       try {
         pf.loadFromHTML(container.querySelectorAll('.page'));
         totalPages = demoPages.length;
-        document.getElementById('page-slider').max = totalPages - 1;
+        const sl1 = document.getElementById('page-slider'); if (sl1) sl1.max = totalPages - 1;
         updatePageIndicator(0);
         document.getElementById('hud-book-title').innerText = 'PaperBook • Демо';
       } catch (err) {
@@ -1952,7 +1952,7 @@
           renderedPageImages = cachedPages;
           totalPages = cachedPages.length;
           document.getElementById('hud-book-title').innerText = formatDisplayTitle(docTitle);
-          document.getElementById('page-slider').max = Math.max(totalPages - 1, 0);
+          const sl2 = document.getElementById('page-slider'); if (sl2) sl2.max = Math.max(totalPages - 1, 0);
 
           const dim = getBookDimensions();
           const safeTargetPage = Math.min(Math.max(targetPage || 0, 0), totalPages - 1);
@@ -1973,7 +1973,7 @@
         renderedPageImages = [];
 
         document.getElementById('hud-book-title').innerText = formatDisplayTitle(docTitle);
-        document.getElementById('page-slider').max = Math.max(totalPages - 1, 0);
+        const sl2 = document.getElementById('page-slider'); if (sl2) sl2.max = Math.max(totalPages - 1, 0);
 
         // Detect page 1 aspect ratio
         try {
