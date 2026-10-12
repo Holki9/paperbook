@@ -565,6 +565,8 @@
       document.getElementById('page-counter').innerText = (pageIdx + 1) + ' / ' + totalPages;
     }
 
+    let currentPdfRatio = 0.68;
+
     // Calculate dimensions matching device screen aspect ratio
     function getBookDimensions() {
       let w = window.innerWidth || document.documentElement.clientWidth || screen.width || 412;
@@ -572,46 +574,84 @@
       if (w <= 0) w = 412;
       if (h <= 0) h = 915;
       const isLandscape = w > h;
+      const ratio = currentPdfRatio || 0.68;
 
-      let bookW, bookH;
       if (isLandscape && !forceSinglePage) {
-        // Two page spread
-        bookH = Math.max(Math.floor(h * 0.92), 320);
-        bookW = Math.max(Math.floor((bookH * 0.70) * 2), 400);
-        if (bookW > w * 0.96) {
-          bookW = Math.floor(w * 0.96);
-          bookH = Math.floor((bookW / 2) / 0.70);
+        // Two page spread in landscape
+        const maxBookW = w * 0.98;
+        const maxBookH = h * 0.96;
+        let spreadW, spreadH;
+        if (maxBookW / maxBookH < ratio * 2) {
+          spreadW = maxBookW;
+          spreadH = spreadW / (ratio * 2);
+        } else {
+          spreadH = maxBookH;
+          spreadW = spreadH * (ratio * 2);
         }
+        const singleW = Math.max(Math.floor(spreadW / 2), 200);
+        const finalH = Math.max(Math.floor(spreadH), 300);
         return {
-          width: Math.max(Math.floor(bookW / 2), 200),
-          height: Math.max(bookH, 300),
+          width: singleW,
+          height: finalH,
           usePortrait: false
         };
       } else {
         // Single page portrait
-        bookH = Math.max(Math.floor(h * 0.94), 320);
-        bookW = Math.max(Math.floor(bookH * 0.68), 240);
-        if (bookW > w * 0.96) {
-          bookW = Math.floor(w * 0.96);
-          bookH = Math.floor(bookW / 0.68);
+        const maxW = w * 0.98;
+        const maxH = h * 0.96;
+        let pageW, pageH;
+        if (maxW / maxH < ratio) {
+          pageW = maxW;
+          pageH = pageW / ratio;
+        } else {
+          pageH = maxH;
+          pageW = pageH * ratio;
         }
         return {
-          width: Math.max(bookW, 200),
-          height: Math.max(bookH, 300),
+          width: Math.max(Math.floor(pageW), 200),
+          height: Math.max(Math.floor(pageH), 300),
           usePortrait: true
         };
       }
     }
 
+    function getOrCreateFlipbook() {
+      let container = document.getElementById('flipbook');
+      const viewport = document.getElementById('book-viewport');
+      if (!container || !viewport.contains(container)) {
+        if (container) {
+          try { container.remove(); } catch (e) {}
+        }
+        container = document.createElement('div');
+        container.id = 'flipbook';
+        const trigger = document.getElementById('touch-hud-trigger');
+        if (trigger && viewport.contains(trigger)) {
+          viewport.insertBefore(container, trigger);
+        } else {
+          viewport.appendChild(container);
+        }
+      }
+      return container;
+    }
+
+    function destroyCurrentBook() {
+      if (pageFlip) {
+        try {
+          pageFlip.destroy();
+        } catch (e) {
+          console.warn('pageFlip destroy error:', e);
+        }
+        pageFlip = null;
+      }
+      const container = getOrCreateFlipbook();
+      container.innerHTML = '';
+      return container;
+    }
+
     // Build PageFlip instance
     function createPageFlipInstance(width, height, usePortrait) {
-      const container = document.getElementById('flipbook');
-      container.innerHTML = '';
+      const container = destroyCurrentBook();
       container.style.display = 'block';
-
-      if (pageFlip) {
-        try { pageFlip.destroy(); } catch (e) {}
-      }
 
       const safeW = Math.max(width || 360, 200);
       const safeH = Math.max(height || 600, 300);
@@ -648,6 +688,7 @@
         }
       });
 
+      window.pageFlip = pageFlip;
       return pageFlip;
     }
 
@@ -709,7 +750,7 @@
       ];
 
       // Convert HTML strings to DOM elements for loadFromHTML
-      const container = document.getElementById('flipbook');
+      const container = getOrCreateFlipbook();
       demoPages.forEach(html => {
         const div = document.createElement('div');
         div.className = 'page';
@@ -734,12 +775,10 @@
     let renderedPageImages = [];
 
     function buildBookFromImages(images, dim, targetPage = 0) {
-      const container = document.getElementById('flipbook');
-      container.innerHTML = '';
+      const pf = createPageFlipInstance(dim.width, dim.height, dim.usePortrait);
+      const container = getOrCreateFlipbook();
       container.style.width = (dim.usePortrait ? dim.width : dim.width * 2) + 'px';
       container.style.height = dim.height + 'px';
-
-      const pf = createPageFlipInstance(dim.width, dim.height, dim.usePortrait);
 
       images.forEach((imgSrc) => {
         const pageDiv = document.createElement('div');
@@ -763,26 +802,39 @@
 
       pf.loadFromHTML(container.querySelectorAll('.page'));
       if (targetPage > 0) {
-        pf.flip(targetPage);
+        try { pf.flip(targetPage); } catch (e) {}
       }
+      window.renderedPageImages = images;
       return pf;
     }
 
-    async function loadPdfDocument(dataArray, docTitle) {
+    async function loadPdfDocument(source, docTitle) {
       showLoading('Открытие документа PDF...');
       try {
-        pdfDoc = await pdfjsLib.getDocument({ data: dataArray }).promise;
+        const loadingTask = (typeof source === 'string')
+          ? pdfjsLib.getDocument({ url: source })
+          : pdfjsLib.getDocument({ data: source });
+        pdfDoc = await loadingTask.promise;
         totalPages = pdfDoc.numPages;
         renderedPageImages = [];
 
-        document.getElementById('hud-book-title').innerText = docTitle || 'PDF Книга (' + totalPages + ' стр.)';
-        document.getElementById('page-slider').max = totalPages - 1;
+        document.getElementById('hud-book-title').innerText = docTitle || ('PDF Книга (' + totalPages + ' стр.)');
+        document.getElementById('page-slider').max = Math.max(totalPages - 1, 0);
+
+        // Detect page 1 aspect ratio
+        try {
+          const firstPage = await pdfDoc.getPage(1);
+          const vp = firstPage.getViewport({ scale: 1 });
+          if (vp.width && vp.height) {
+            currentPdfRatio = vp.width / vp.height;
+          }
+        } catch (e) {
+          console.warn('Could not detect ratio from page 1:', e);
+        }
 
         const dim = getBookDimensions();
         const dpr = Math.min(window.devicePixelRatio || 2, 2.5);
         const targetW = dim.width * dpr;
-
-        showLoading('Рендеринг страниц (0/' + totalPages + ')...');
 
         for (let i = 1; i <= totalPages; i++) {
           const page = await pdfDoc.getPage(i);
@@ -803,7 +855,10 @@
           }).promise;
 
           renderedPageImages.push(canvas.toDataURL('image/jpeg', 0.90));
-          document.getElementById('loading-text').innerText = 'Рендеринг страниц (' + i + '/' + totalPages + ')...';
+          const pct = Math.round((i / totalPages) * 100);
+          document.getElementById('loading-text').innerText = 'Рендеринг: ' + pct + '% (' + i + ' / ' + totalPages + ')';
+          // Yield to UI loop
+          await new Promise(r => setTimeout(r, 0));
         }
 
         buildBookFromImages(renderedPageImages, dim, 0);
@@ -811,7 +866,8 @@
         hideLoading();
         hideHud();
       } catch (err) {
-        alert('Ошибка при открытии PDF: ' + err.message);
+        console.error('loadPdfDocument error:', err);
+        alert('Ошибка при открытии PDF: ' + (err.message || err));
         hideLoading();
       }
     }
@@ -837,7 +893,11 @@
       reader.readAsArrayBuffer(file);
     }
 
-    // Android interface hook
+    // Android interface hooks
+    window.loadPdfFromUrl = function(pdfUrl, fileName) {
+      loadPdfDocument(pdfUrl, fileName);
+    };
+
     window.loadPdfFromBase64 = function(base64Str, fileName) {
       try {
         const binaryString = window.atob(base64Str);
@@ -881,6 +941,9 @@
       initWebAudio();
       setTimeout(() => {
         renderDemoBook();
+        if (window.AndroidBridge && window.AndroidBridge.onViewerReady) {
+          window.AndroidBridge.onViewerReady();
+        }
       }, 100);
     });
 

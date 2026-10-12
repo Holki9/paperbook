@@ -26,10 +26,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+import java.io.File
+import java.io.FileInputStream
+
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
     private lateinit var assetLoader: WebViewAssetLoader
+    private var pendingPdfUri: Uri? = null
+    private var isViewerReady: Boolean = false
 
     private val openPdfLauncher = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -114,6 +119,29 @@ class MainActivity : AppCompatActivity() {
                 view: WebView,
                 request: WebResourceRequest
             ): WebResourceResponse? {
+                val urlPath = request.url.path ?: ""
+                if (urlPath.contains("opened_pdf/current.pdf")) {
+                    val cacheFile = File(cacheDir, "current_book.pdf")
+                    if (cacheFile.exists()) {
+                        try {
+                            val stream = FileInputStream(cacheFile)
+                            val headers = mapOf(
+                                "Access-Control-Allow-Origin" to "*",
+                                "Content-Type" to "application/pdf"
+                            )
+                            return WebResourceResponse(
+                                "application/pdf",
+                                null,
+                                200,
+                                "OK",
+                                headers,
+                                stream
+                            )
+                        } catch (e: Exception) {
+                            android.util.Log.e("PaperBook", "Error reading cached PDF", e)
+                        }
+                    }
+                }
                 return assetLoader.shouldInterceptRequest(request.url)
             }
         }
@@ -131,6 +159,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadPdfFromUri(uri: Uri) {
+        if (!isViewerReady) {
+            pendingPdfUri = uri
+            return
+        }
+
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 var fileName = "Document.pdf"
@@ -141,19 +174,24 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                if (bytes != null) {
-                    val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
-                    withContext(Dispatchers.Main) {
-                        val sanitizedName = fileName.replace("'", "\\'")
-                        webView.evaluateJavascript(
-                            "window.loadPdfFromBase64('$base64', '$sanitizedName');",
-                            null
-                        )
+                // Copy stream to cache file for streaming without Base64 / IPC limits
+                val cacheFile = File(cacheDir, "current_book.pdf")
+                contentResolver.openInputStream(uri)?.use { input ->
+                    cacheFile.outputStream().use { output ->
+                        input.copyTo(output)
                     }
                 }
+
+                withContext(Dispatchers.Main) {
+                    val sanitizedName = fileName.replace("'", "\\'")
+                    val timestamp = System.currentTimeMillis()
+                    webView.evaluateJavascript(
+                        "window.loadPdfFromUrl('https://appassets.androidplatform.net/opened_pdf/current.pdf?t=$timestamp', '$sanitizedName');",
+                        null
+                    )
+                }
             } catch (e: Exception) {
-                e.printStackTrace()
+                android.util.Log.e("PaperBook", "Error loading PDF from uri", e)
             }
         }
     }
@@ -163,6 +201,17 @@ class MainActivity : AppCompatActivity() {
         fun pickPdf() {
             runOnUiThread {
                 openPdfLauncher.launch(arrayOf("application/pdf"))
+            }
+        }
+
+        @JavascriptInterface
+        fun onViewerReady() {
+            runOnUiThread {
+                isViewerReady = true
+                pendingPdfUri?.let { uri ->
+                    pendingPdfUri = null
+                    loadPdfFromUri(uri)
+                }
             }
         }
     }
