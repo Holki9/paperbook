@@ -86,6 +86,10 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun setupWebView() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            WebView.setWebContentsDebuggingEnabled(true)
+        }
+
         webView = findViewById(R.id.webView)
         webView.setLayerType(View.LAYER_TYPE_HARDWARE, null)
 
