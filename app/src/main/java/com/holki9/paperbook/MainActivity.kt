@@ -142,6 +142,29 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                 }
+                if (urlPath.contains("/library_books/")) {
+                    val fileName = urlPath.substringAfterLast("/")
+                    val bookFile = File(File(filesDir, "books"), fileName)
+                    if (bookFile.exists()) {
+                        try {
+                            val stream = FileInputStream(bookFile)
+                            val headers = mapOf(
+                                "Access-Control-Allow-Origin" to "*",
+                                "Content-Type" to "application/pdf"
+                            )
+                            return WebResourceResponse(
+                                "application/pdf",
+                                null,
+                                200,
+                                "OK",
+                                headers,
+                                stream
+                            )
+                        } catch (e: Exception) {
+                            android.util.Log.e("PaperBook", "Error reading library PDF", e)
+                        }
+                    }
+                }
                 return assetLoader.shouldInterceptRequest(request.url)
             }
         }
@@ -174,19 +197,34 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                // Copy stream to cache file for streaming without Base64 / IPC limits
-                val cacheFile = File(cacheDir, "current_book.pdf")
+                val bookId = "book_" + System.currentTimeMillis()
+                val booksDir = File(filesDir, "books")
+                if (!booksDir.exists()) {
+                    booksDir.mkdirs()
+                }
+
+                val persistentFile = File(booksDir, "$bookId.pdf")
                 contentResolver.openInputStream(uri)?.use { input ->
-                    cacheFile.outputStream().use { output ->
+                    persistentFile.outputStream().use { output ->
                         input.copyTo(output)
                     }
                 }
 
+                // Also update current_book.pdf in cache
+                try {
+                    val cacheFile = File(cacheDir, "current_book.pdf")
+                    persistentFile.inputStream().use { input ->
+                        cacheFile.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                } catch (e: Exception) {}
+
                 withContext(Dispatchers.Main) {
                     val sanitizedName = fileName.replace("'", "\\'")
-                    val timestamp = System.currentTimeMillis()
+                    val bookUrl = "https://appassets.androidplatform.net/library_books/$bookId.pdf"
                     webView.evaluateJavascript(
-                        "window.loadPdfFromUrl('https://appassets.androidplatform.net/opened_pdf/current.pdf?t=$timestamp', '$sanitizedName');",
+                        "if (window.onBookAdded) { window.onBookAdded('$bookId', '$sanitizedName', '$bookUrl'); } else { window.loadPdfFromUrl('$bookUrl', '$sanitizedName'); }",
                         null
                     )
                 }
@@ -201,6 +239,18 @@ class MainActivity : AppCompatActivity() {
         fun pickPdf() {
             runOnUiThread {
                 openPdfLauncher.launch(arrayOf("application/pdf"))
+            }
+        }
+
+        @JavascriptInterface
+        fun deleteBook(bookId: String) {
+            try {
+                val bookFile = File(File(filesDir, "books"), "$bookId.pdf")
+                if (bookFile.exists()) {
+                    bookFile.delete()
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("PaperBook", "Error deleting book $bookId", e)
             }
         }
 

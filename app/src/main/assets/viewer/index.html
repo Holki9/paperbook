@@ -383,6 +383,202 @@
     #hidden-file-input {
       display: none;
     }
+
+    /* Bookshelf Screen */
+    #bookshelf-view {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: var(--bg-desk);
+      z-index: 150;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      color: var(--hud-text);
+      transition: opacity 0.25s ease;
+    }
+
+    #bookshelf-view.hidden {
+      display: none;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #bookshelf-header {
+      padding: calc(env(safe-area-inset-top, 16px) + 16px) 20px 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--hud-border);
+      position: sticky;
+      top: 0;
+      background: var(--hud-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      z-index: 10;
+    }
+
+    .shelf-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .shelf-brand-icon {
+      font-size: 24px;
+    }
+
+    .shelf-brand-title {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+    }
+
+    .shelf-add-btn {
+      background: var(--hud-accent-bg);
+      border: 1px solid var(--hud-border);
+      color: var(--hud-text);
+      padding: 10px 16px;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .shelf-add-btn:active {
+      transform: scale(0.96);
+    }
+
+    #bookshelf-content {
+      padding: 20px;
+      flex: 1;
+      padding-bottom: 60px;
+    }
+
+    #bookshelf-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    @media (min-width: 600px) {
+      #bookshelf-grid {
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 20px;
+      }
+    }
+
+    .book-card {
+      display: flex;
+      flex-direction: column;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--hud-border);
+      border-radius: 16px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative;
+    }
+
+    .book-card:active {
+      transform: scale(0.97);
+    }
+
+    .book-cover-container {
+      width: 100%;
+      aspect-ratio: 0.68;
+      background: #111113;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .book-cover-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .book-card-info {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .book-card-title {
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--hud-text);
+    }
+
+    .book-card-meta {
+      font-size: 11px;
+      color: #a1a1aa;
+    }
+
+    .book-card-progress {
+      height: 4px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .book-card-progress-bar {
+      height: 100%;
+      background: #38bdf8;
+      border-radius: 2px;
+    }
+
+    .book-delete-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(0, 0, 0, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #f87171;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      cursor: pointer;
+      z-index: 5;
+    }
+
+    #zoom-reset-btn {
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      z-index: 60;
+      background: var(--hud-bg);
+      border: 1px solid var(--hud-border);
+      color: var(--hud-text);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      cursor: pointer;
+      display: none;
+    }
   </style>
 </head>
 <body data-theme="paper">
@@ -393,14 +589,44 @@
       <!-- Center tap area to toggle HUD -->
       <div id="touch-hud-trigger" onclick="toggleHud()"></div>
     </div>
+    <button id="zoom-reset-btn" onclick="resetZoom()">🔍 1.0x (Сброс)</button>
+  </div>
+
+  <!-- Bookshelf Screen -->
+  <div id="bookshelf-view">
+    <div id="bookshelf-header">
+      <div class="shelf-brand">
+        <span class="shelf-brand-icon">📚</span>
+        <span class="shelf-brand-title">Моя библиотека</span>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button class="shelf-add-btn" onclick="triggerPickPdf()">
+          <span>➕</span> Добавить PDF
+        </button>
+        <button class="shelf-add-btn" id="shelf-close-btn" style="display: none;" onclick="closeBookshelf()">
+          <span>✕</span> К чтению
+        </button>
+      </div>
+    </div>
+    <div id="bookshelf-content">
+      <div id="bookshelf-grid"></div>
+      <div id="bookshelf-empty" style="text-align: center; margin-top: 80px; color: #a1a1aa; display: none;">
+        <div style="font-size: 54px; margin-bottom: 12px;">📖</div>
+        <div style="font-size: 18px; font-weight: 600; color: var(--hud-text);">Библиотека пуста</div>
+        <div style="font-size: 13px; margin-top: 8px; line-height: 1.5;">Нажмите «Добавить PDF» выше,<br>чтобы открыть любимые книги и комиксы.</div>
+      </div>
+    </div>
   </div>
 
   <!-- Top Floating HUD -->
   <div id="hud-top" class="hud-panel">
-    <div class="book-title-tag" id="hud-book-title">PaperBook • Демо</div>
+    <button class="hud-btn" onclick="openBookshelf()" style="font-weight: 600;">
+      <span>📚</span> Полка
+    </button>
+    <div class="book-title-tag" id="hud-book-title" style="flex: 1; text-align: center; margin: 0 8px;">PaperBook • Демо</div>
     <div style="display: flex; gap: 8px;">
       <button class="hud-btn" onclick="triggerPickPdf()">
-        <span>📂</span> Открыть PDF
+        <span>➕</span> Добавить
       </button>
     </div>
   </div>
@@ -504,6 +730,7 @@
 
     // Toggle HUD
     function toggleHud() {
+      if (currentScale > 1.05) return;
       hudVisible = !hudVisible;
       document.getElementById('hud-top').classList.toggle('visible', hudVisible);
       document.getElementById('hud-bottom').classList.toggle('visible', hudVisible);
@@ -649,7 +876,8 @@
     }
 
     // Build PageFlip instance
-    function createPageFlipInstance(width, height, usePortrait) {
+    function createPageFlipInstance(width, height, usePortrait, startPage = 0) {
+      resetZoom();
       const container = destroyCurrentBook();
       container.style.display = 'block';
 
@@ -657,6 +885,7 @@
       const safeH = Math.max(height || 600, 300);
 
       pageFlip = new St.PageFlip(container, {
+        startPage: startPage || 0,
         width: safeW,
         height: safeH,
         size: 'fixed',
@@ -679,7 +908,9 @@
       });
 
       pageFlip.on('flip', (e) => {
+        resetZoom();
         updatePageIndicator(e.data);
+        saveBookProgress(currentBookId, e.data);
       });
 
       pageFlip.on('changeState', (e) => {
@@ -694,9 +925,10 @@
 
     // Render demo pages (built-in book)
     function renderDemoBook() {
+      currentBookId = 'demo';
       showLoading('Подготовка интерактивной книги...');
       const dim = getBookDimensions();
-      const pf = createPageFlipInstance(dim.width, dim.height, dim.usePortrait);
+      const pf = createPageFlipInstance(dim.width, dim.height, dim.usePortrait, 0);
 
       const demoPages = [
         // Page 1: Cover
@@ -771,11 +1003,320 @@
       }
     }
 
+    // ==========================================
+    // PINCH-TO-ZOOM & PAN SYSTEM
+    // ==========================================
+    let currentScale = 1;
+    let currentPanX = 0;
+    let currentPanY = 0;
+    let pinchStartDist = 0;
+    let pinchStartScale = 1;
+    let lastTouchPoint = { x: 0, y: 0 };
+    let isPinching = false;
+    let isPanning = false;
+    let lastTapTime = 0;
+
+    function applyZoomTransform(animate = false) {
+      const flipbook = document.getElementById('flipbook');
+      if (!flipbook) return;
+      if (animate) {
+        flipbook.style.transition = 'transform 0.25s cubic-bezier(0.2, 0, 0, 1)';
+      } else {
+        flipbook.style.transition = 'none';
+      }
+      flipbook.style.transform = `translate3d(${currentPanX}px, ${currentPanY}px, 0) scale(${currentScale})`;
+
+      const resetBtn = document.getElementById('zoom-reset-btn');
+      if (resetBtn) {
+        if (currentScale > 1.05) {
+          resetBtn.style.display = 'block';
+          resetBtn.innerText = `🔍 ${currentScale.toFixed(1)}x (Сброс)`;
+        } else {
+          resetBtn.style.display = 'none';
+        }
+      }
+    }
+
+    function clampPan() {
+      const vp = document.getElementById('book-viewport');
+      const w = vp ? vp.clientWidth : window.innerWidth;
+      const h = vp ? vp.clientHeight : window.innerHeight;
+      const maxPanX = Math.max((w * (currentScale - 1)) / 2 + 80, 0);
+      const maxPanY = Math.max((h * (currentScale - 1)) / 2 + 80, 0);
+      currentPanX = Math.min(Math.max(currentPanX, -maxPanX), maxPanX);
+      currentPanY = Math.min(Math.max(currentPanY, -maxPanY), maxPanY);
+    }
+
+    function resetZoom() {
+      currentScale = 1;
+      currentPanX = 0;
+      currentPanY = 0;
+      applyZoomTransform(true);
+    }
+
+    function initPinchZoom() {
+      const vp = document.getElementById('book-viewport');
+      if (!vp) return;
+
+      vp.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 2) {
+          isPinching = true;
+          isPanning = false;
+          const dx = e.touches[0].clientX - e.touches[1].clientX;
+          const dy = e.touches[0].clientY - e.touches[1].clientY;
+          pinchStartDist = Math.hypot(dx, dy);
+          pinchStartScale = currentScale;
+          e.stopPropagation();
+          e.preventDefault();
+        } else if (e.touches.length === 1) {
+          isPinching = false;
+          const touch = e.touches[0];
+          const now = Date.now();
+
+          // Double tap detection
+          if (now - lastTapTime < 300) {
+            lastTapTime = 0;
+            if (currentScale > 1.1) {
+              resetZoom();
+            } else {
+              currentScale = 2.2;
+              const cx = window.innerWidth / 2;
+              const cy = window.innerHeight / 2;
+              currentPanX = (cx - touch.clientX) * 0.8;
+              currentPanY = (cy - touch.clientY) * 0.8;
+              clampPan();
+              applyZoomTransform(true);
+            }
+            e.stopPropagation();
+            e.preventDefault();
+            return;
+          }
+          lastTapTime = now;
+
+          if (currentScale > 1.05) {
+            isPanning = true;
+            lastTouchPoint = { x: touch.clientX, y: touch.clientY };
+            e.stopPropagation();
+            e.preventDefault();
+          } else {
+            isPanning = false;
+          }
+        }
+      }, { capture: true, passive: false });
+
+      vp.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 2 && isPinching) {
+          e.stopPropagation();
+          e.preventDefault();
+          const dx = e.touches[0].clientX - e.touches[1].clientX;
+          const dy = e.touches[0].clientY - e.touches[1].clientY;
+          const dist = Math.hypot(dx, dy);
+          if (pinchStartDist > 0) {
+            const factor = dist / pinchStartDist;
+            currentScale = Math.min(Math.max(pinchStartScale * factor, 1.0), 3.5);
+            clampPan();
+            applyZoomTransform(false);
+          }
+        } else if (e.touches.length === 1 && currentScale > 1.05 && isPanning) {
+          e.stopPropagation();
+          e.preventDefault();
+          const touch = e.touches[0];
+          const dx = touch.clientX - lastTouchPoint.x;
+          const dy = touch.clientY - lastTouchPoint.y;
+          lastTouchPoint = { x: touch.clientX, y: touch.clientY };
+          currentPanX += dx;
+          currentPanY += dy;
+          clampPan();
+          applyZoomTransform(false);
+        }
+      }, { capture: true, passive: false });
+
+      vp.addEventListener('touchend', (e) => {
+        if (isPinching && e.touches.length < 2) {
+          isPinching = false;
+          if (currentScale < 1.05) {
+            resetZoom();
+          } else {
+            clampPan();
+            applyZoomTransform(true);
+          }
+          e.stopPropagation();
+          e.preventDefault();
+        } else if (isPanning && e.touches.length === 0) {
+          isPanning = false;
+          if (currentScale < 1.05) {
+            resetZoom();
+          } else {
+            clampPan();
+            applyZoomTransform(true);
+          }
+        }
+      }, { capture: true, passive: false });
+    }
+
+    // ==========================================
+    // LIBRARY & BOOKSHELF SYSTEM
+    // ==========================================
+    const STORAGE_LIBRARY_KEY = 'paperbook_library_v1';
+    const STORAGE_LAST_BOOK_ID = 'paperbook_last_book_id';
+    let currentBookId = null;
+
+    function getStoredLibrary() {
+      try {
+        const raw = localStorage.getItem(STORAGE_LIBRARY_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        console.error('Error reading library:', e);
+        return [];
+      }
+    }
+
+    function saveStoredLibrary(list) {
+      try {
+        localStorage.setItem(STORAGE_LIBRARY_KEY, JSON.stringify(list));
+      } catch (e) {
+        console.error('Error saving library:', e);
+      }
+    }
+
+    function saveBookProgress(bookId, pageIndex) {
+      if (!bookId || bookId === 'demo') return;
+      const list = getStoredLibrary();
+      const book = list.find(b => b.id === bookId);
+      if (book) {
+        book.lastPage = pageIndex;
+        book.lastReadTime = Date.now();
+        saveStoredLibrary(list);
+      }
+    }
+
+    function openBookshelf() {
+      hideHud();
+      renderBookshelf();
+      const shelf = document.getElementById('bookshelf-view');
+      shelf.classList.remove('hidden');
+      shelf.style.display = 'flex';
+
+      const closeBtn = document.getElementById('shelf-close-btn');
+      if (currentBookId || renderedPageImages.length > 0) {
+        closeBtn.style.display = 'inline-flex';
+      } else {
+        closeBtn.style.display = 'none';
+      }
+    }
+
+    function closeBookshelf() {
+      const shelf = document.getElementById('bookshelf-view');
+      shelf.classList.add('hidden');
+      shelf.style.display = 'none';
+    }
+
+    function renderBookshelf() {
+      const list = getStoredLibrary();
+      const grid = document.getElementById('bookshelf-grid');
+      const empty = document.getElementById('bookshelf-empty');
+      grid.innerHTML = '';
+
+      // Demo Book Card
+      const demoCard = document.createElement('div');
+      demoCard.className = 'book-card';
+      demoCard.onclick = () => {
+        currentBookId = 'demo';
+        localStorage.setItem(STORAGE_LAST_BOOK_ID, 'demo');
+        closeBookshelf();
+        recalculateAndRebuild();
+      };
+      demoCard.innerHTML = `
+        <div class="book-cover-container" style="background: linear-gradient(135deg, #18181b, #27272a);">
+          <div style="font-size: 40px;">📖</div>
+        </div>
+        <div class="book-card-info">
+          <div class="book-card-title">PaperBook • Демо</div>
+          <div class="book-card-meta">Интерактивный тур</div>
+          <div class="book-card-progress">
+            <div class="book-card-progress-bar" style="width: 100%;"></div>
+          </div>
+        </div>
+      `;
+      grid.appendChild(demoCard);
+
+      if (list.length === 0) {
+        empty.style.display = 'block';
+      } else {
+        empty.style.display = 'none';
+        list.sort((a, b) => (b.lastReadTime || 0) - (a.lastReadTime || 0));
+
+        list.forEach(book => {
+          const card = document.createElement('div');
+          card.className = 'book-card';
+          const curPage = (book.lastPage || 0) + 1;
+          const pct = (book.totalPages > 1)
+            ? Math.min(Math.round(curPage / book.totalPages * 100), 100)
+            : 100;
+
+          const coverHtml = book.coverThumbnail
+            ? `<img class="book-cover-img" src="${book.coverThumbnail}" alt="${book.title}" />`
+            : `<div style="font-size: 38px;">📕</div>`;
+
+          card.innerHTML = `
+            <button class="book-delete-btn" title="Удалить" onclick="event.stopPropagation(); deleteBookFromShelf('${book.id}')">✕</button>
+            <div class="book-cover-container">
+              ${coverHtml}
+            </div>
+            <div class="book-card-info">
+              <div class="book-card-title" title="${book.title}">${book.title}</div>
+              <div class="book-card-meta">${curPage} из ${book.totalPages} стр. (${pct}%)</div>
+              <div class="book-card-progress">
+                <div class="book-card-progress-bar" style="width: ${pct}%;"></div>
+              </div>
+            </div>
+          `;
+
+          card.onclick = () => {
+            openBookFromShelf(book.id);
+          };
+
+          grid.appendChild(card);
+        });
+      }
+    }
+
+    function deleteBookFromShelf(bookId) {
+      if (!confirm('Удалить эту книгу из библиотеки?')) return;
+      let list = getStoredLibrary();
+      list = list.filter(b => b.id !== bookId);
+      saveStoredLibrary(list);
+
+      if (window.AndroidBridge && window.AndroidBridge.deleteBook) {
+        window.AndroidBridge.deleteBook(bookId);
+      }
+
+      if (currentBookId === bookId) {
+        currentBookId = null;
+        localStorage.removeItem(STORAGE_LAST_BOOK_ID);
+        renderedPageImages = [];
+        destroyCurrentBook();
+      }
+
+      renderBookshelf();
+    }
+
+    async function openBookFromShelf(bookId) {
+      const list = getStoredLibrary();
+      const book = list.find(b => b.id === bookId);
+      if (!book) return;
+
+      currentBookId = book.id;
+      localStorage.setItem(STORAGE_LAST_BOOK_ID, book.id);
+      closeBookshelf();
+      await loadPdfDocument(book.url, book.title, book.lastPage || 0);
+    }
+
     // PDF Rendering Engine
     let renderedPageImages = [];
 
     function buildBookFromImages(images, dim, targetPage = 0) {
-      const pf = createPageFlipInstance(dim.width, dim.height, dim.usePortrait);
+      const pf = createPageFlipInstance(dim.width, dim.height, dim.usePortrait, targetPage);
       const container = getOrCreateFlipbook();
       container.style.width = (dim.usePortrait ? dim.width : dim.width * 2) + 'px';
       container.style.height = dim.height + 'px';
@@ -802,13 +1343,17 @@
 
       pf.loadFromHTML(container.querySelectorAll('.page'));
       if (targetPage > 0) {
-        try { pf.flip(targetPage); } catch (e) {}
+        try {
+          setTimeout(() => {
+            pf.flip(targetPage);
+          }, 60);
+        } catch (e) {}
       }
       window.renderedPageImages = images;
       return pf;
     }
 
-    async function loadPdfDocument(source, docTitle) {
+    async function loadPdfDocument(source, docTitle, targetPage = 0) {
       showLoading('Открытие документа PDF...');
       try {
         const loadingTask = (typeof source === 'string')
@@ -861,8 +1406,9 @@
           await new Promise(r => setTimeout(r, 0));
         }
 
-        buildBookFromImages(renderedPageImages, dim, 0);
-        updatePageIndicator(0);
+        const safeTargetPage = Math.min(Math.max(targetPage || 0, 0), totalPages - 1);
+        buildBookFromImages(renderedPageImages, dim, safeTargetPage);
+        updatePageIndicator(safeTargetPage);
         hideLoading();
         hideHud();
       } catch (err) {
@@ -888,14 +1434,68 @@
       const reader = new FileReader();
       reader.onload = function(evt) {
         const typedArray = new Uint8Array(evt.target.result);
-        loadPdfDocument(typedArray, file.name);
+        const bookId = 'local_' + Date.now();
+        currentBookId = bookId;
+        loadPdfDocument(typedArray, file.name, 0);
       };
       reader.readAsArrayBuffer(file);
     }
 
     // Android interface hooks
+    window.onBookAdded = async function(bookId, fileName, bookUrl) {
+      showLoading('Добавление в библиотеку...');
+      try {
+        const loadingTask = pdfjsLib.getDocument({ url: bookUrl });
+        const pdf = await loadingTask.promise;
+        const numPages = pdf.numPages;
+
+        let thumbnail = '';
+        try {
+          const page1 = await pdf.getPage(1);
+          const vp = page1.getViewport({ scale: 0.35 });
+          const thumbCanvas = document.createElement('canvas');
+          thumbCanvas.width = vp.width;
+          thumbCanvas.height = vp.height;
+          const tCtx = thumbCanvas.getContext('2d');
+          tCtx.fillStyle = '#FFFFFF';
+          tCtx.fillRect(0, 0, vp.width, vp.height);
+          await page1.render({ canvasContext: tCtx, viewport: vp }).promise;
+          thumbnail = thumbCanvas.toDataURL('image/jpeg', 0.85);
+        } catch (e) {
+          console.warn('Cover generation error:', e);
+        }
+
+        const list = getStoredLibrary();
+        const existingIdx = list.findIndex(b => b.id === bookId);
+        const entry = {
+          id: bookId,
+          title: fileName,
+          url: bookUrl,
+          totalPages: numPages,
+          lastPage: 0,
+          lastReadTime: Date.now(),
+          coverThumbnail: thumbnail
+        };
+        if (existingIdx >= 0) {
+          list[existingIdx] = entry;
+        } else {
+          list.push(entry);
+        }
+        saveStoredLibrary(list);
+
+        currentBookId = bookId;
+        localStorage.setItem(STORAGE_LAST_BOOK_ID, bookId);
+        closeBookshelf();
+        await loadPdfDocument(bookUrl, fileName, 0);
+      } catch (err) {
+        console.error('onBookAdded error:', err);
+        hideLoading();
+        alert('Ошибка при сохранении книги: ' + (err.message || err));
+      }
+    };
+
     window.loadPdfFromUrl = function(pdfUrl, fileName) {
-      loadPdfDocument(pdfUrl, fileName);
+      loadPdfDocument(pdfUrl, fileName, 0);
     };
 
     window.loadPdfFromBase64 = function(base64Str, fileName) {
@@ -906,13 +1506,14 @@
         for (let i = 0; i < len; i++) {
           bytes[i] = binaryString.charCodeAt(i);
         }
-        loadPdfDocument(bytes, fileName);
+        loadPdfDocument(bytes, fileName, 0);
       } catch (e) {
         alert('Ошибка декодирования файла: ' + e.message);
       }
     };
 
     function recalculateAndRebuild() {
+      resetZoom();
       if (renderedPageImages.length > 0) {
         const dim = getBookDimensions();
         buildBookFromImages(renderedPageImages, dim, currentPageIndex);
@@ -939,8 +1540,18 @@
     // Initialize on window load
     window.addEventListener('load', () => {
       initWebAudio();
+      initPinchZoom();
       setTimeout(() => {
-        renderDemoBook();
+        const list = getStoredLibrary();
+        const lastBookId = localStorage.getItem(STORAGE_LAST_BOOK_ID);
+        if (lastBookId && lastBookId !== 'demo' && list.some(b => b.id === lastBookId)) {
+          openBookFromShelf(lastBookId);
+        } else if (list.length > 0) {
+          openBookshelf();
+        } else {
+          renderDemoBook();
+        }
+
         if (window.AndroidBridge && window.AndroidBridge.onViewerReady) {
           window.AndroidBridge.onViewerReady();
         }
@@ -948,7 +1559,6 @@
     });
 
     window.addEventListener('resize', () => {
-      // Debounced resize
       clearTimeout(window._resizeTimer);
       window._resizeTimer = setTimeout(recalculateAndRebuild, 250);
     });
