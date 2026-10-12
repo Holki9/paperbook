@@ -1281,11 +1281,82 @@
       }
     }
 
+    // ==========================================
+    // PERSISTENT BOOK CACHE (IndexedDB)
+    // ==========================================
+    const DB_NAME = 'PaperBookCacheDB';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'book_pages';
+
+    function openCacheDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME, { keyPath: 'bookId' });
+          }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function getCachedBookPages(bookId) {
+      if (!bookId) return null;
+      try {
+        const db = await openCacheDB();
+        return new Promise((resolve) => {
+          const tx = db.transaction(STORE_NAME, 'readonly');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.get(bookId);
+          req.onsuccess = () => {
+            if (req.result && req.result.images && req.result.images.length > 0) {
+              resolve(req.result.images);
+            } else {
+              resolve(null);
+            }
+          };
+          req.onerror = () => resolve(null);
+        });
+      } catch (e) {
+        console.warn('Error reading from cache DB:', e);
+        return null;
+      }
+    }
+
+    async function saveBookPagesToCache(bookId, images) {
+      if (!bookId || !images || images.length === 0) return;
+      try {
+        const db = await openCacheDB();
+        return new Promise((resolve) => {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          store.put({ bookId: bookId, images: images, timestamp: Date.now() });
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => resolve(false);
+        });
+      } catch (e) {
+        console.warn('Error saving to cache DB:', e);
+      }
+    }
+
+    async function deleteBookPagesFromCache(bookId) {
+      if (!bookId) return;
+      try {
+        const db = await openCacheDB();
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        store.delete(bookId);
+      } catch (e) {}
+    }
+
     function deleteBookFromShelf(bookId) {
       if (!confirm('Удалить эту книгу из библиотеки?')) return;
       let list = getStoredLibrary();
       list = list.filter(b => b.id !== bookId);
       saveStoredLibrary(list);
+      deleteBookPagesFromCache(bookId);
 
       if (window.AndroidBridge && window.AndroidBridge.deleteBook) {
         window.AndroidBridge.deleteBook(bookId);
@@ -1309,51 +1380,48 @@
       currentBookId = book.id;
       localStorage.setItem(STORAGE_LAST_BOOK_ID, book.id);
       closeBookshelf();
-      await loadPdfDocument(book.url, book.title, book.lastPage || 0);
+      await loadPdfDocument(book.url, book.title, book.lastPage || 0, book.id);
     }
 
     // PDF Rendering Engine
     let renderedPageImages = [];
 
     function buildBookFromImages(images, dim, targetPage = 0) {
-      const pf = createPageFlipInstance(dim.width, dim.height, dim.usePortrait, targetPage);
+      const safeTargetPage = Math.min(Math.max(targetPage || 0, 0), images.length - 1);
+      const pf = createPageFlipInstance(dim.width, dim.height, dim.usePortrait, safeTargetPage);
       const container = getOrCreateFlipbook();
       container.style.width = (dim.usePortrait ? dim.width : dim.width * 2) + 'px';
       container.style.height = dim.height + 'px';
 
-      images.forEach((imgSrc) => {
-        const pageDiv = document.createElement('div');
-        pageDiv.className = 'page';
-        pageDiv.style.width = dim.width + 'px';
-        pageDiv.style.height = dim.height + 'px';
-        pageDiv.style.backgroundColor = currentTheme === 'amoled' ? '#121214' : '#FFFFFF';
-        pageDiv.style.display = 'flex';
-        pageDiv.style.alignItems = 'center';
-        pageDiv.style.justifyContent = 'center';
-        pageDiv.style.overflow = 'hidden';
-
-        const img = document.createElement('img');
-        img.src = imgSrc;
-        img.style.width = '100%';
-        img.style.height = '100%';
-        img.style.objectFit = 'contain';
-        pageDiv.appendChild(img);
-        container.appendChild(pageDiv);
-      });
-
-      pf.loadFromHTML(container.querySelectorAll('.page'));
-      if (targetPage > 0) {
-        try {
-          setTimeout(() => {
-            pf.flip(targetPage);
-          }, 60);
-        } catch (e) {}
-      }
+      // Load using hardware-accelerated CanvasRender - zero DOM duplication, no tile memory spikes!
+      pf.loadFromImages(images);
       window.renderedPageImages = images;
+      updatePageIndicator(safeTargetPage);
       return pf;
     }
 
-    async function loadPdfDocument(source, docTitle, targetPage = 0) {
+    async function loadPdfDocument(source, docTitle, targetPage = 0, bookId = null) {
+      const activeBookId = bookId || currentBookId;
+
+      // 1. Instant Open from Cache: Check if pages already rendered and cached!
+      if (activeBookId) {
+        showLoading('Загрузка из кэша книги...');
+        const cachedPages = await getCachedBookPages(activeBookId);
+        if (cachedPages && cachedPages.length > 0) {
+          renderedPageImages = cachedPages;
+          totalPages = cachedPages.length;
+          document.getElementById('hud-book-title').innerText = docTitle || ('PDF Книга (' + totalPages + ' стр.)');
+          document.getElementById('page-slider').max = Math.max(totalPages - 1, 0);
+
+          const dim = getBookDimensions();
+          const safeTargetPage = Math.min(Math.max(targetPage || 0, 0), totalPages - 1);
+          buildBookFromImages(renderedPageImages, dim, safeTargetPage);
+          hideLoading();
+          hideHud();
+          return;
+        }
+      }
+
       showLoading('Открытие документа PDF...');
       try {
         const loadingTask = (typeof source === 'string')
@@ -1378,7 +1446,7 @@
         }
 
         const dim = getBookDimensions();
-        const dpr = Math.min(window.devicePixelRatio || 2, 2.5);
+        const dpr = Math.min(window.devicePixelRatio || 2, 2.2);
         const targetW = dim.width * dpr;
 
         for (let i = 1; i <= totalPages; i++) {
@@ -1399,11 +1467,16 @@
             viewport: scaledViewport
           }).promise;
 
-          renderedPageImages.push(canvas.toDataURL('image/jpeg', 0.90));
+          renderedPageImages.push(canvas.toDataURL('image/jpeg', 0.88));
           const pct = Math.round((i / totalPages) * 100);
           document.getElementById('loading-text').innerText = 'Рендеринг: ' + pct + '% (' + i + ' / ' + totalPages + ')';
           // Yield to UI loop
           await new Promise(r => setTimeout(r, 0));
+        }
+
+        // Cache the newly rendered pages in IndexedDB for instant reopening next time!
+        if (activeBookId) {
+          saveBookPagesToCache(activeBookId, renderedPageImages);
         }
 
         const safeTargetPage = Math.min(Math.max(targetPage || 0, 0), totalPages - 1);
@@ -1436,7 +1509,7 @@
         const typedArray = new Uint8Array(evt.target.result);
         const bookId = 'local_' + Date.now();
         currentBookId = bookId;
-        loadPdfDocument(typedArray, file.name, 0);
+        loadPdfDocument(typedArray, file.name, 0, bookId);
       };
       reader.readAsArrayBuffer(file);
     }
@@ -1486,7 +1559,7 @@
         currentBookId = bookId;
         localStorage.setItem(STORAGE_LAST_BOOK_ID, bookId);
         closeBookshelf();
-        await loadPdfDocument(bookUrl, fileName, 0);
+        await loadPdfDocument(bookUrl, fileName, 0, bookId);
       } catch (err) {
         console.error('onBookAdded error:', err);
         hideLoading();
@@ -1495,7 +1568,7 @@
     };
 
     window.loadPdfFromUrl = function(pdfUrl, fileName) {
-      loadPdfDocument(pdfUrl, fileName, 0);
+      loadPdfDocument(pdfUrl, fileName, 0, currentBookId);
     };
 
     window.loadPdfFromBase64 = function(base64Str, fileName) {
@@ -1506,7 +1579,7 @@
         for (let i = 0; i < len; i++) {
           bytes[i] = binaryString.charCodeAt(i);
         }
-        loadPdfDocument(bytes, fileName, 0);
+        loadPdfDocument(bytes, fileName, 0, currentBookId);
       } catch (e) {
         alert('Ошибка декодирования файла: ' + e.message);
       }
