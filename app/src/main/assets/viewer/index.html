@@ -993,6 +993,14 @@
       return audioCtx;
     }
 
+    function initWebAudio() {
+      try {
+        getAudioContext();
+      } catch (e) {
+        console.warn('initWebAudio error:', e);
+      }
+    }
+
     // Global audio unlock on first user gesture
     ['touchstart', 'touchend', 'mousedown', 'pointerdown'].forEach(evtName => {
       window.addEventListener(evtName, () => {
