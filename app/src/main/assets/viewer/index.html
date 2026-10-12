@@ -727,6 +727,41 @@
     // PDF Rendering Engine
     let renderedPageImages = [];
 
+    function buildBookFromImages(images, dim, targetPage = 0) {
+      const container = document.getElementById('flipbook');
+      container.innerHTML = '';
+      container.style.width = (dim.usePortrait ? dim.width : dim.width * 2) + 'px';
+      container.style.height = dim.height + 'px';
+
+      const pf = createPageFlipInstance(dim.width, dim.height, dim.usePortrait);
+
+      images.forEach((imgSrc) => {
+        const pageDiv = document.createElement('div');
+        pageDiv.className = 'page';
+        pageDiv.style.width = dim.width + 'px';
+        pageDiv.style.height = dim.height + 'px';
+        pageDiv.style.backgroundColor = currentTheme === 'amoled' ? '#121214' : '#FFFFFF';
+        pageDiv.style.display = 'flex';
+        pageDiv.style.alignItems = 'center';
+        pageDiv.style.justifyContent = 'center';
+        pageDiv.style.overflow = 'hidden';
+
+        const img = document.createElement('img');
+        img.src = imgSrc;
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'contain';
+        pageDiv.appendChild(img);
+        container.appendChild(pageDiv);
+      });
+
+      pf.loadFromHTML(container.querySelectorAll('.page'));
+      if (targetPage > 0) {
+        pf.flip(targetPage);
+      }
+      return pf;
+    }
+
     async function loadPdfDocument(dataArray, docTitle) {
       showLoading('Открытие документа PDF...');
       try {
@@ -763,8 +798,7 @@
           document.getElementById('loading-text').innerText = 'Рендеринг страниц (' + i + '/' + totalPages + ')...';
         }
 
-        const pf = createPageFlipInstance(dim.width, dim.height, dim.usePortrait);
-        pf.loadFromImages(renderedPageImages);
+        buildBookFromImages(renderedPageImages, dim, 0);
         updatePageIndicator(0);
         hideLoading();
         hideHud();
@@ -813,9 +847,7 @@
     function recalculateAndRebuild() {
       if (renderedPageImages.length > 0) {
         const dim = getBookDimensions();
-        const pf = createPageFlipInstance(dim.width, dim.height, dim.usePortrait);
-        pf.loadFromImages(renderedPageImages);
-        pf.flip(currentPageIndex);
+        buildBookFromImages(renderedPageImages, dim, currentPageIndex);
       } else {
         renderDemoBook();
       }
