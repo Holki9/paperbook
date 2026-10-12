@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>PaperBook</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    :root {
+      --bg-desk: #18181b;
+      --hud-bg: rgba(24, 24, 27, 0.88);
+      --hud-border: rgba(255, 255, 255, 0.12);
+      --hud-text: #f4f4f5;
+      --hud-accent: #e4e4e7;
+      --hud-accent-bg: rgba(255, 255, 255, 0.16);
+    }
+
+    body[data-theme="paper"] {
+      --bg-desk: #1c1917;
+      --hud-bg: rgba(28, 25, 23, 0.90);
+      --hud-border: rgba(245, 245, 244, 0.15);
+      --hud-text: #f5f5f4;
+      --hud-accent: #d6d3d1;
+      --hud-accent-bg: rgba(255, 255, 255, 0.14);
+    }
+
+    body[data-theme="amoled"] {
+      --bg-desk: #000000;
+      --hud-bg: rgba(10, 10, 10, 0.92);
+      --hud-border: rgba(255, 255, 255, 0.15);
+      --hud-text: #ffffff;
+      --hud-accent: #38bdf8;
+      --hud-accent-bg: rgba(56, 189, 248, 0.2);
+    }
+
+    body[data-theme="eink"] {
+      --bg-desk: #ffffff;
+      --hud-bg: #ffffff;
+      --hud-border: #000000;
+      --hud-text: #000000;
+      --hud-accent: #000000;
+      --hud-accent-bg: #e5e5e5;
+    }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: var(--bg-desk);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      transition: background-color 0.3s ease;
+    }
+
+    #app-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #book-viewport {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #flipbook {
+      display: none;
+      margin: auto;
+    }
+
+    /* Filters for night/amoled reading */
+    body[data-theme="amoled"] .stf__parent canvas {
+      filter: invert(0.92) hue-rotate(180deg) brightness(0.95) contrast(1.1);
+    }
+
+    body[data-theme="eink"] .stf__parent canvas {
+      filter: grayscale(1) contrast(1.4);
+    }
+
+    /* Tap zone in middle of screen to toggle HUD */
+    #touch-hud-trigger {
+      position: absolute;
+      top: 25%;
+      left: 25%;
+      width: 50%;
+      height: 50%;
+      z-index: 50;
+      cursor: pointer;
+    }
+
+    /* Minimalist Floating HUD */
+    .hud-panel {
+      position: absolute;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: var(--hud-bg);
+      border: 1px solid var(--hud-border);
+      color: var(--hud-text);
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .hud-panel.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Top HUD Bar */
+    #hud-top {
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-radius: 0 0 20px 20px;
+      transform: translateY(-20px);
+    }
+
+    #hud-top.visible {
+      transform: translateY(0);
+    }
+
+    .book-title-tag {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 60vw;
+    }
+
+    .hud-btn {
+      background: var(--hud-accent-bg);
+      border: 1px solid var(--hud-border);
+      color: var(--hud-text);
+      padding: 8px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .hud-btn:active {
+      transform: scale(0.96);
+      opacity: 0.8;
+    }
+
+    /* Bottom HUD Bar */
+    #hud-bottom {
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      border-radius: 24px 24px 0 0;
+      transform: translateY(20px);
+    }
+
+    #hud-bottom.visible {
+      transform: translateY(0);
+    }
+
+    .hud-controls-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .theme-selector {
+      display: flex;
+      gap: 6px;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 4px;
+      border-radius: 14px;
+      border: 1px solid var(--hud-border);
+    }
+
+    .theme-btn {
+      background: transparent;
+      border: none;
+      color: var(--hud-text);
+      padding: 6px 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .theme-btn.active {
+      background: var(--hud-accent-bg);
+      color: var(--hud-accent);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }
+
+    .page-slider-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .page-counter {
+      font-size: 13px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      min-width: 65px;
+      text-align: center;
+    }
+
+    .slider {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.2);
+      outline: none;
+    }
+
+    body[data-theme="eink"] .slider {
+      background: #ccc;
+    }
+
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--hud-text);
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
+
+    /* Loading Overlay */
+    #loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: var(--bg-desk);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 200;
+      color: var(--hud-text);
+      transition: opacity 0.3s ease;
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid rgba(255, 255, 255, 0.2);
+      border-top-color: var(--hud-text);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    #loading-text {
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+    }
+
+    /* Page styling for demo book */
+    .demo-page {
+      background-color: #FDFBF7;
+      color: #27272a;
+      padding: 40px 30px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 100%;
+      font-family: "Georgia", "Times New Roman", serif;
+      box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.05);
+    }
+
+    .demo-header {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #71717a;
+      text-align: center;
+      border-bottom: 1px solid #e4e4e7;
+      padding-bottom: 12px;
+    }
+
+    .demo-title {
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1.3;
+      margin: 20px 0 14px 0;
+      text-align: center;
+      color: #18181b;
+    }
+
+    .demo-body {
+      font-size: 15px;
+      line-height: 1.75;
+      text-align: justify;
+      color: #3f3f46;
+      flex: 1;
+    }
+
+    .demo-body p {
+      margin-bottom: 14px;
+      text-indent: 1.5em;
+    }
+
+    .demo-footer {
+      font-size: 12px;
+      text-align: center;
+      color: #a1a1aa;
+      border-top: 1px solid #f4f4f5;
+      padding-top: 10px;
+    }
+
+    .cta-card {
+      background: #f4f4f5;
+      border: 1px dashed #d4d4d8;
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+      margin-top: 10px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    .cta-btn {
+      background: #18181b;
+      color: #ffffff;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-top: 12px;
+      cursor: pointer;
+      display: inline-block;
+    }
+
+    /* Fallback file input */
+    #hidden-file-input {
+      display: none;
+    }
+  </style>
+</head>
+<body data-theme="paper">
+
+  <div id="app-container">
+    <div id="book-viewport">
+      <div id="flipbook"></div>
+      <!-- Center tap area to toggle HUD -->
+      <div id="touch-hud-trigger" onclick="toggleHud()"></div>
+    </div>
+  </div>
+
+  <!-- Top Floating HUD -->
+  <div id="hud-top" class="hud-panel">
+    <div class="book-title-tag" id="hud-book-title">PaperBook • Демо</div>
+    <div style="display: flex; gap: 8px;">
+      <button class="hud-btn" onclick="triggerPickPdf()">
+        <span>📂</span> Открыть PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- Bottom Floating HUD -->
+  <div id="hud-bottom" class="hud-panel">
+    <div class="page-slider-container">
+      <span class="page-counter" id="page-counter">1 / 1</span>
+      <input type="range" class="slider" id="page-slider" min="0" max="0" value="0" oninput="onSliderChange(this.value)">
+    </div>
+
+    <div class="hud-controls-row">
+      <!-- Theme Selection -->
+      <div class="theme-selector">
+        <button class="theme-btn active" id="btn-theme-paper" onclick="setTheme('paper')">Бумага</button>
+        <button class="theme-btn" id="btn-theme-amoled" onclick="setTheme('amoled')">AMOLED</button>
+        <button class="theme-btn" id="btn-theme-eink" onclick="setTheme('eink')">E-Ink</button>
+      </div>
+
+      <!-- Quick Toggles -->
+      <div style="display: flex; gap: 8px;">
+        <button class="hud-btn" id="sound-btn" onclick="toggleSound()">
+          <span id="sound-icon">🔊</span> Звук
+        </button>
+        <button class="hud-btn" id="spread-btn" onclick="toggleSpread()">
+          <span id="spread-icon">📖</span> <span id="spread-text">Авто</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Indicator -->
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <div id="loading-text">Загрузка книги...</div>
+  </div>
+
+  <!-- Hidden Audio and File Input -->
+  <audio id="page-flip-sound" src="audio/page-flip.mp3" preload="auto"></audio>
+  <input type="file" id="hidden-file-input" accept="application/pdf" onchange="onLocalFilePicked(event)">
+
+  <!-- External Libraries -->
+  <script src="js/page-flip.browser.js"></script>
+  <script src="js/pdf.min.js"></script>
+
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'js/pdf.worker.min.js';
+
+    let pageFlip = null;
+    let currentTheme = 'paper';
+    let soundEnabled = true;
+    let forceSinglePage = false;
+    let totalPages = 0;
+    let currentPageIndex = 0;
+    let hudVisible = false;
+    let pdfDoc = null;
+    let flipAudio = document.getElementById('page-flip-sound');
+
+    // Low-latency Web Audio Context for crisp flip sound
+    let audioCtx = null;
+    let audioBuffer = null;
+
+    function initWebAudio() {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+          audioCtx = new AudioContext();
+          fetch('audio/page-flip.mp3')
+            .then(res => res.arrayBuffer())
+            .then(buf => audioCtx.decodeAudioData(buf))
+            .then(decoded => {
+              audioBuffer = decoded;
+            })
+            .catch(() => {});
+        }
+      } catch (e) {}
+    }
+
+    function playFlipSound() {
+      if (!soundEnabled) return;
+      if (audioCtx && audioBuffer) {
+        try {
+          if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+          }
+          const source = audioCtx.createBufferSource();
+          source.buffer = audioBuffer;
+          // Randomize subtle playback rate for organic sound variation
+          source.playbackRate.value = 0.95 + Math.random() * 0.1;
+          source.connect(audioCtx.destination);
+          source.start(0);
+          return;
+        } catch (e) {}
+      }
+      // Fallback HTML5 Audio
+      if (flipAudio) {
+        flipAudio.currentTime = 0;
+        flipAudio.play().catch(() => {});
+      }
+    }
+
+    // Toggle HUD
+    function toggleHud() {
+      hudVisible = !hudVisible;
+      document.getElementById('hud-top').classList.toggle('visible', hudVisible);
+      document.getElementById('hud-bottom').classList.toggle('visible', hudVisible);
+    }
+
+    function hideHud() {
+      if (hudVisible) {
+        hudVisible = false;
+        document.getElementById('hud-top').classList.remove('visible');
+        document.getElementById('hud-bottom').classList.remove('visible');
+      }
+    }
+
+    // Themes
+    function setTheme(theme) {
+      currentTheme = theme;
+      document.body.setAttribute('data-theme', theme);
+      document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('btn-theme-' + theme).classList.add('active');
+
+      if (theme === 'eink') {
+        // E-Ink optimization: disable sound, instant snap
+        if (pageFlip) {
+          pageFlip.getSettings().flippingTime = 120;
+          pageFlip.getSettings().drawShadow = false;
+        }
+      } else {
+        if (pageFlip) {
+          pageFlip.getSettings().flippingTime = 600;
+          pageFlip.getSettings().drawShadow = true;
+        }
+      }
+    }
+
+    // Sound toggle
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      document.getElementById('sound-icon').innerText = soundEnabled ? '🔊' : '🔇';
+    }
+
+    // Single / Double page toggle
+    function toggleSpread() {
+      forceSinglePage = !forceSinglePage;
+      document.getElementById('spread-text').innerText = forceSinglePage ? '1 стр.' : 'Авто';
+      recalculateAndRebuild();
+    }
+
+    // Slider
+    function onSliderChange(val) {
+      val = parseInt(val, 10);
+      if (pageFlip && val !== currentPageIndex) {
+        pageFlip.flip(val);
+      }
+    }
+
+    function updatePageIndicator(pageIdx) {
+      currentPageIndex = pageIdx;
+      document.getElementById('page-slider').value = pageIdx;
+      document.getElementById('page-counter').innerText = (pageIdx + 1) + ' / ' + totalPages;
+    }
+
+    // Calculate dimensions matching device screen aspect ratio
+    function getBookDimensions() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const isLandscape = w > h;
+
+      let bookW, bookH;
+      if (isLandscape && !forceSinglePage) {
+        // Two page spread
+        bookH = Math.floor(h * 0.94);
+        bookW = Math.floor((bookH * 0.70) * 2);
+        if (bookW > w * 0.96) {
+          bookW = Math.floor(w * 0.96);
+          bookH = Math.floor((bookW / 2) / 0.70);
+        }
+        return {
+          width: Math.floor(bookW / 2),
+          height: bookH,
+          usePortrait: false
+        };
+      } else {
+        // Single page portrait
+        bookH = Math.floor(h * 0.96);
+        bookW = Math.floor(bookH * 0.68);
+        if (bookW > w * 0.96) {
+          bookW = Math.floor(w * 0.96);
+          bookH = Math.floor(bookW / 0.68);
+        }
+        return {
+          width: bookW,
+          height: bookH,
+          usePortrait: true
+        };
+      }
+    }
+
+    // Build PageFlip instance
+    function createPageFlipInstance(width, height, usePortrait) {
+      const container = document.getElementById('flipbook');
+      container.innerHTML = '';
+      container.style.display = 'block';
+
+      if (pageFlip) {
+        try { pageFlip.destroy(); } catch (e) {}
+      }
+
+      pageFlip = new St.PageFlip(container, {
+        width: width,
+        height: height,
+        size: 'fixed',
+        minWidth: 200,
+        maxWidth: 2400,
+        minHeight: 300,
+        maxHeight: 2800,
+        drawShadow: currentTheme !== 'eink',
+        flippingTime: currentTheme === 'eink' ? 120 : 600,
+        usePortrait: usePortrait,
+        startZIndex: 5,
+        autoSize: true,
+        maxShadowOpacity: 0.55,
+        showCover: false,
+        mobileScrollSupport: false,
+        swipeDistance: 25,
+        clickEventForward: false,
+        useMouseEvents: true,
+        showPageCorners: true
+      });
+
+      pageFlip.on('flip', (e) => {
+        updatePageIndicator(e.data);
+      });
+
+      pageFlip.on('changeState', (e) => {
+        if (e.data === 'flipping') {
+          playFlipSound();
+        }
+      });
+
+      return pageFlip;
+    }
+
+    // Render demo pages (built-in book)
+    function renderDemoBook() {
+      showLoading('Подготовка интерактивной книги...');
+      const dim = getBookDimensions();
+      const pf = createPageFlipInstance(dim.width, dim.height, dim.usePortrait);
+
+      const demoPages = [
+        // Page 1: Cover
+        `<div class="demo-page" style="background: linear-gradient(135deg, #27272a, #09090b); color: #f4f4f5;">
+          <div class="demo-header" style="color: #a1a1aa; border-color: #3f3f46;">PaperBook Engine</div>
+          <div style="text-align: center; margin: auto;">
+            <div style="font-size: 42px; margin-bottom: 12px;">📖</div>
+            <div class="demo-title" style="color: #ffffff; font-size: 28px;">Истинное чтение</div>
+            <div style="font-size: 14px; color: #a1a1aa; margin-top: 8px;">Физика бумаги • 3D Изгиб • Звук</div>
+          </div>
+          <div class="demo-footer" style="color: #71717a; border-color: #27272a;">Свайпни от края листа →</div>
+        </div>`,
+
+        // Page 2: Physics
+        `<div class="demo-page">
+          <div class="demo-header">Глава I • Физика листа</div>
+          <div class="demo-body">
+            <div class="demo-title" style="text-align: left; font-size: 20px;">Настоящий изгиб</div>
+            <p>В отличие от обычных читалок, которые просто сдвигают экран влево и вправо, здесь реализована полная математическая модель нерастяжимой бумаги.</p>
+            <p>Потяни пальцем за уголок или правый край страницы: лист плавно сгибается в коническую поверхность с динамической тенью в корешке.</p>
+          </div>
+          <div class="demo-footer">Страница 2</div>
+        </div>`,
+
+        // Page 3: Audio & Themes
+        `<div class="demo-page">
+          <div class="demo-header">Глава II • Звук и Экраны</div>
+          <div class="demo-body">
+            <div class="demo-title" style="text-align: left; font-size: 20px;">Звуки и E-Ink</div>
+            <p>Каждое движение сопровождается реалистичным шелестом бумаги через низколатентный аудио-движок.</p>
+            <p>Коснись центра экрана, чтобы открыть меню:</p>
+            <p>• <b>Бумага:</b> тёплый уютный оттенок.<br>• <b>AMOLED:</b> глубокий чёрный для S24 Ultra.<br>• <b>E-Ink:</b> максимальный контраст без смазывания для чтения на ярком солнце.</p>
+          </div>
+          <div class="demo-footer">Страница 3</div>
+        </div>`,
+
+        // Page 4: PDF CTA
+        `<div class="demo-page">
+          <div class="demo-header">Глава III • Любой PDF</div>
+          <div class="demo-body" style="display: flex; flex-direction: column; justify-content: center;">
+            <div class="demo-title" style="text-align: center; font-size: 20px;">Открой свои книги</div>
+            <div class="cta-card">
+              <div style="font-size: 24px; margin-bottom: 8px;">📂</div>
+              <div style="font-size: 14px; font-weight: 600; color: #18181b;">Загрузи свой PDF-файл</div>
+              <div style="font-size: 12px; color: #71717a; margin-top: 4px;">Любая книга превратится в интерактивный том</div>
+              <button class="cta-btn" onclick="triggerPickPdf()">Выбрать PDF с устройства</button>
+            </div>
+          </div>
+          <div class="demo-footer">Страница 4</div>
+        </div>`
+      ];
+
+      // Convert HTML strings to DOM elements for loadFromHTML
+      const container = document.getElementById('flipbook');
+      demoPages.forEach(html => {
+        const div = document.createElement('div');
+        div.className = 'page';
+        div.innerHTML = html;
+        container.appendChild(div);
+      });
+
+      pf.loadFromHTML(container.querySelectorAll('.page'));
+      totalPages = demoPages.length;
+      document.getElementById('page-slider').max = totalPages - 1;
+      updatePageIndicator(0);
+      document.getElementById('hud-book-title').innerText = 'PaperBook • Демо';
+      hideLoading();
+    }
+
+    // PDF Rendering Engine
+    let renderedPageImages = [];
+
+    async function loadPdfDocument(dataArray, docTitle) {
+      showLoading('Открытие документа PDF...');
+      try {
+        pdfDoc = await pdfjsLib.getDocument({ data: dataArray }).promise;
+        totalPages = pdfDoc.numPages;
+        renderedPageImages = [];
+
+        document.getElementById('hud-book-title').innerText = docTitle || 'PDF Книга (' + totalPages + ' стр.)';
+        document.getElementById('page-slider').max = totalPages - 1;
+
+        const dim = getBookDimensions();
+        const dpr = Math.min(window.devicePixelRatio || 2, 2.5);
+        const targetW = dim.width * dpr;
+
+        showLoading('Рендеринг страниц (0/' + totalPages + ')...');
+
+        for (let i = 1; i <= totalPages; i++) {
+          const page = await pdfDoc.getPage(i);
+          const viewport = page.getViewport({ scale: 1 });
+          const scale = targetW / viewport.width;
+          const scaledViewport = page.getViewport({ scale: scale });
+
+          const canvas = document.createElement('canvas');
+          canvas.width = scaledViewport.width;
+          canvas.height = scaledViewport.height;
+          const ctx = canvas.getContext('2d');
+
+          await page.render({
+            canvasContext: ctx,
+            viewport: scaledViewport
+          }).promise;
+
+          renderedPageImages.push(canvas.toDataURL('image/jpeg', 0.90));
+          document.getElementById('loading-text').innerText = 'Рендеринг страниц (' + i + '/' + totalPages + ')...';
+        }
+
+        const pf = createPageFlipInstance(dim.width, dim.height, dim.usePortrait);
+        pf.loadFromImages(renderedPageImages);
+        updatePageIndicator(0);
+        hideLoading();
+        hideHud();
+      } catch (err) {
+        alert('Ошибка при открытии PDF: ' + err.message);
+        hideLoading();
+      }
+    }
+
+    // Native Bridge / SAF File Picker
+    function triggerPickPdf() {
+      hideHud();
+      if (window.AndroidBridge && window.AndroidBridge.pickPdf) {
+        window.AndroidBridge.pickPdf();
+      } else {
+        document.getElementById('hidden-file-input').click();
+      }
+    }
+
+    function onLocalFilePicked(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const typedArray = new Uint8Array(evt.target.result);
+        loadPdfDocument(typedArray, file.name);
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // Android interface hook
+    window.loadPdfFromBase64 = function(base64Str, fileName) {
+      try {
+        const binaryString = window.atob(base64Str);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        loadPdfDocument(bytes, fileName);
+      } catch (e) {
+        alert('Ошибка декодирования файла: ' + e.message);
+      }
+    };
+
+    function recalculateAndRebuild() {
+      if (renderedPageImages.length > 0) {
+        const dim = getBookDimensions();
+        const pf = createPageFlipInstance(dim.width, dim.height, dim.usePortrait);
+        pf.loadFromImages(renderedPageImages);
+        pf.flip(currentPageIndex);
+      } else {
+        renderDemoBook();
+      }
+    }
+
+    function showLoading(text) {
+      const el = document.getElementById('loading-overlay');
+      document.getElementById('loading-text').innerText = text;
+      el.style.display = 'flex';
+      el.style.opacity = '1';
+    }
+
+    function hideLoading() {
+      const el = document.getElementById('loading-overlay');
+      el.style.opacity = '0';
+      setTimeout(() => {
+        el.style.display = 'none';
+      }, 300);
+    }
+
+    // Initialize on window load
+    window.addEventListener('load', () => {
+      initWebAudio();
+      renderDemoBook();
+    });
+
+    window.addEventListener('resize', () => {
+      // Debounced resize
+      clearTimeout(window._resizeTimer);
+      window._resizeTimer = setTimeout(recalculateAndRebuild, 250);
+    });
+
+    // Tap outside HUD closes it
+    document.addEventListener('click', (e) => {
+      if (hudVisible && !e.target.closest('.hud-panel') && !e.target.closest('#touch-hud-trigger')) {
+        hideHud();
+      }
+    });
+  </script>
+</body>
+</html>
