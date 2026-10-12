@@ -106,16 +106,7 @@
       flex-shrink: 0;
     }
 
-    /* Tap zone in middle of screen to toggle HUD */
-    #touch-hud-trigger {
-      position: absolute;
-      top: 25%;
-      left: 25%;
-      width: 50%;
-      height: 50%;
-      z-index: 50;
-      cursor: pointer;
-    }
+    /* Tap zone in middle handled dynamically without overlay blocking gestures */
 
     /* Minimalist Floating HUD */
     .hud-panel {
@@ -593,8 +584,7 @@
   <div id="app-container">
     <div id="book-viewport">
       <div id="flipbook"></div>
-      <!-- Center tap area to toggle HUD -->
-      <div id="touch-hud-trigger" onclick="toggleHud()"></div>
+      <!-- Center tap area to toggle HUD handled in gestures -->
     </div>
     <button id="zoom-reset-btn" onclick="resetZoom()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 4px;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><span>1.0x (Сброс)</span></button>
   </div>
@@ -1036,6 +1026,7 @@
     let isPinching = false;
     let isPanning = false;
     let lastTapTime = 0;
+    let singleTouchStart = null;
 
     function applyZoomTransform(animate = false) {
       const flipbook = document.getElementById('flipbook');
@@ -1114,6 +1105,7 @@
           }
           lastTapTime = now;
 
+          singleTouchStart = { x: touch.clientX, y: touch.clientY, time: now };
           if (currentScale > 1.05) {
             isPanning = true;
             lastTouchPoint = { x: touch.clientX, y: touch.clientY };
@@ -1163,14 +1155,30 @@
           }
           e.stopPropagation();
           e.preventDefault();
-        } else if (isPanning && e.touches.length === 0) {
-          isPanning = false;
-          if (currentScale < 1.05) {
-            resetZoom();
-          } else {
-            clampPan();
-            applyZoomTransform(true);
+        } else if (e.touches.length === 0) {
+          if (isPanning) {
+            isPanning = false;
+            if (currentScale < 1.05) {
+              resetZoom();
+            } else {
+              clampPan();
+              applyZoomTransform(true);
+            }
+          } else if (singleTouchStart && currentScale <= 1.05 && e.changedTouches.length > 0) {
+            const touch = e.changedTouches[0];
+            const dx = Math.abs(touch.clientX - singleTouchStart.x);
+            const dy = Math.abs(touch.clientY - singleTouchStart.y);
+            const dt = Date.now() - singleTouchStart.time;
+            if (dt < 300 && dx < 15 && dy < 15) {
+              const w = window.innerWidth;
+              const h = window.innerHeight;
+              if (touch.clientX > w * 0.25 && touch.clientX < w * 0.75 &&
+                  touch.clientY > h * 0.25 && touch.clientY < h * 0.75) {
+                toggleHud();
+              }
+            }
           }
+          singleTouchStart = null;
         }
       }, { capture: true, passive: false });
     }
